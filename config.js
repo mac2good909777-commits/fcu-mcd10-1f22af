@@ -23,10 +23,10 @@ const CONFIG = {
 
   // Supabase → Settings → API Keys →「Publishable key」那一列的複製鈕
   // 長得像 sb_publishable_xxxxxxxxxxxx
-  SUPABASE_ANON_KEY: "",
+  SUPABASE_ANON_KEY: "sb_publishable_oS5qe_Nie6Ry7QAyqB7jhQ_I4hiMRtN",
 
   // LINE Developers → 你的 Login channel → Basic settings → Channel ID
-  LINE_CHANNEL_ID: ""
+  LINE_CHANNEL_ID: "2011322765"
 };
 
 // 三個都填了才算接上；少一個就退回版型模式，不會半死不活。
