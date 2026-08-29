@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v1.1　2026-08-29";
+const VERSION = "v1.2　2026-08-29";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -950,14 +950,13 @@ function render_me(){
       <article class="card pad" style="text-align:center">
         <div style="font-size:2rem">🔐</div>
         <b style="display:block;margin-top:8px">登入後才能報名活動、看聯絡方式</b>
-        <div class="hint" style="margin-top:6px">正式版走 LINE 登入，第一次登入要從名冊認領自己的身分。</div>
+        <div class="hint" style="margin-top:6px">用 LINE 登入。第一次登入要從名冊點自己的名字，之後就會直接進來。</div>
         <div class="actions" style="margin-top:14px"><button class="btn btn-primary" onclick="onMe()">登入</button></div>
       </article>`}
 
-    <div class="sec"><h2>主視覺風格</h2></div>
+    <div class="sec"><h2>看板的封面照</h2></div>
     <article class="card pad">
-      <div class="hint" style="margin-bottom:10px">版型階段的選項。決定後我把 <code>HERO_DEFAULT</code> 改掉、
-        其餘幾張圖刪掉就好。</div>
+      <div class="hint" style="margin-bottom:10px">選一張你喜歡的，只會改到你自己看到的畫面。</div>
       <div class="chips" style="flex-wrap:wrap">
         ${Object.entries(HEROES).map(([k,h]) =>
           `<button class="chip${heroKey()===k?" on":""}" onclick="setHero('${k}')">${esc(h.label)}</button>`).join("")}
@@ -968,16 +967,17 @@ function render_me(){
         使用時必須標示作者與授權，出處寫在<b>使用說明</b>頁最下面。</div>
     </article>
 
+    ${LIVE ? "" : `
     <div class="sec"><h2>版型測試：切換身分</h2></div>
     <article class="card pad">
-      <div class="hint" style="margin-bottom:10px">正式版沒有這一塊。這裡是讓你檢查
-        「未登入／一般同學／幹部」三種身分看到的畫面差異。</div>
+      <div class="hint" style="margin-bottom:10px">⛔ 只有版型模式才有這一塊。
+        接上資料庫之後它會自己消失 —— 正式站上留著等於誰都能假冒任何人。</div>
       <div class="chips" style="flex-wrap:wrap">
         <button class="chip${!ME?" on":""}" onclick="loginAs(null)">未登入</button>
         <button class="chip${ME&&!ME.officer?" on":""}" onclick="loginAs(5)">一般同學</button>
         <button class="chip${ME&&ME.officer?" on":""}" onclick="loginAs(23)">幹部（班代）</button>
       </div>
-    </article>`;
+    </article>`}`;
 }
 
 /* ── 班級管理（幹部）──────────────────────────────────────────── */
