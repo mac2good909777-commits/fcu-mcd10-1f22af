@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v1.2　2026-08-29";
+const VERSION = "v1.3　2026-08-29";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -1293,12 +1293,53 @@ function paintMe(){
 }
 
 /* ── 啟動 ──────────────────────────────────────────────────────── */
+/* ⚠️ 一個失敗不能拖垮全部。
+   原本用 Promise.all：七個查詢只要一個失敗，MEMBERS 就停在空陣列，
+   整個網站變空白，錯誤只有頁尾一行小字 —— 同學會直接當成「壞了」。
+   改成 allSettled：成功的照用，失敗的保留舊值，並回報哪幾項掛了。 */
 async function reload(){
-  const [m, p, n, a, s, mine, prof] = await Promise.all([
-    db.members(), db.posts(), db.needs(), db.albums(), db.seats(), db.mySignups(), db.profiles()
-  ]);
-  MEMBERS = m; POSTS = p; NEEDS = n; ALBUMS = a; SEATS = s; MY_SIGNUPS = mine;
-  if(prof) PROFILES = prof;
+  const jobs = [
+    ["members",  db.members()],
+    ["posts",    db.posts()],
+    ["needs",    db.needs()],
+    ["albums",   db.albums()],
+    ["seats",    db.seats()],
+    ["signups",  db.mySignups()],
+    ["profiles", db.profiles()],
+  ];
+  const res = await Promise.allSettled(jobs.map(j => j[1]));
+  const failed = [];
+  res.forEach((r, i) => {
+    const name = jobs[i][0];
+    if(r.status === "rejected"){ failed.push(name); console.error("讀取失敗：" + name, r.reason); return; }
+    const v = r.value;
+    if(name === "members"  && v) MEMBERS = v;
+    if(name === "posts"    && v) POSTS = v;
+    if(name === "needs"    && v) NEEDS = v;
+    if(name === "albums"   && v) ALBUMS = v;
+    if(name === "seats"    && v) SEATS = v;
+    if(name === "signups"  && v) MY_SIGNUPS = v;
+    if(name === "profiles" && v) PROFILES = v;
+  });
+  return failed;
+}
+
+// 讀不到東西時要講人話，並且給一顆能按的按鈕 —— 不要只留一行紅字在頁尾
+function showLoadError(failed){
+  const bar = el("loaderr");
+  if(!failed.length){ bar.style.display = "none"; return; }
+  bar.style.display = "block";
+  bar.innerHTML = `<b>有些資料沒讀到</b>（${esc(failed.join("、"))}）。
+    通常是網路不穩或伺服器剛睡醒，重試一次多半就好了。
+    <button class="btn btn-sm" style="margin-top:8px;background:#fff;color:var(--p-700)"
+      onclick="retryLoad(this)">重新載入</button>`;
+}
+async function retryLoad(btn){
+  btn.disabled = true; btn.textContent = "載入中…";
+  const failed = await reload();
+  showLoadError(failed);
+  render(VIEW);
+  paintMe();
 }
 
 (async function boot(){
@@ -1309,11 +1350,17 @@ async function reload(){
       const handled = await handleLineCallback();
       if(!handled) ME = await restoreLogin();
     }
-    await reload();
-  }catch(e){
-    console.error(e);
-    el("verline").innerHTML = `<span style="color:var(--c-red)">讀取失敗：${esc(e.message)}</span>`;
+  }catch(e){ console.error("登入狀態還原失敗", e); }
+
+  let failed = await reload();
+  // ⚠️ 冷啟動時 Supabase 偶爾會丟一次 Failed to fetch，重試一次就好。
+  //    不重試的話，使用者看到的是一個空白的網站。
+  if(failed.length){
+    await new Promise(r => setTimeout(r, 900));
+    failed = await reload();
   }
+  showLoadError(failed);
+
   paintMe();
   // 認領畫面是登入流程的一部分，不要被 go("home") 蓋掉
   if(VIEW !== "claim") go("home");
