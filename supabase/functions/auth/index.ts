@@ -34,6 +34,18 @@ const LINE_SECRET = Deno.env.get("LINE_CHANNEL_SECRET") ?? "";
 const JWT_SECRET  = Deno.env.get("JWT_SECRET") ?? "";
 const SB_URL      = Deno.env.get("SUPABASE_URL") ?? "";
 
+/* apikey 標頭要的是【真的 Supabase 金鑰】，不能塞自簽的 JWT。
+   舊版 anon/service_role key 本身就是 JWT，所以以前那樣寫剛好會動；
+   專案換成新版金鑰（sb_publishable_/sb_secret_）之後，
+   閘道會拿 apikey 去比對金鑰清單 → 自簽的一律 Invalid API key。
+   ⚠️ 不同世代的專案注入的變數名稱不一樣，所以這裡列一串候選逐一找。 */
+const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+                 ?? Deno.env.get("SUPABASE_SECRET_KEY") ?? "";
+const API_KEY = SERVICE_KEY
+             || Deno.env.get("SUPABASE_ANON_KEY")
+             || Deno.env.get("SUPABASE_PUBLISHABLE_KEY")
+             || "";
+
 const cors = {
   "Access-Control-Allow-Origin": "*",
   // ⚠️ 前端多送任何一個標頭而這裡沒列，瀏覽器預檢就會失敗，
@@ -87,12 +99,16 @@ async function svcToken() {
   );
 }
 async function db(path: string, init: RequestInit = {}) {
-  const t = await svcToken();
+  // apikey 用真的金鑰讓閘道放行；
+  // Authorization 決定「用什麼角色執行」——
+  // 有 service key 就直接用它，沒有就用自簽的 service_role JWT。
+  if (!API_KEY) throw new Error("找不到任何 Supabase API key（見 ping 診斷）");
+  const bearer = SERVICE_KEY || await svcToken();
   const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
     ...init,
     headers: {
-      apikey: t,
-      Authorization: `Bearer ${t}`,
+      apikey: API_KEY,
+      Authorization: `Bearer ${bearer}`,
       "Content-Type": "application/json",
       Prefer: "return=representation",
       ...(init.headers ?? {}),
@@ -135,8 +151,11 @@ Deno.serve(async (req) => {
         env: {
           LINE_CHANNEL_ID: LINE_ID ? "set" : "MISSING",
           LINE_CHANNEL_SECRET: LINE_SECRET ? "set" : "MISSING",
-          JWT_SECRET: JWT_SECRET ? "set" : "MISSING",
+          JWT_SECRET: JWT_SECRET ? `set(${JWT_SECRET.length})` : "MISSING",
           SUPABASE_URL: SB_URL ? "set" : "MISSING",
+          SERVICE_KEY: SERVICE_KEY ? "set" : "MISSING",
+          API_KEY: API_KEY ? "set" : "MISSING",
+          mode: SERVICE_KEY ? "service key" : "自簽 service_role JWT",
         },
         db: dbOK,
       });
