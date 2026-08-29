@@ -19,9 +19,10 @@
 
 const CONFIG = {
   // Supabase → Settings → Data API → Project URL
-  SUPABASE_URL: "",          // 例：https://abcdefghijk.supabase.co
+  SUPABASE_URL: "https://tjmfhypsigobhgjpkxpp.supabase.co",   // ← 已填（專案 fcu-mcd10，東京節點）
 
-  // Supabase → Settings → API Keys → anon / publishable
+  // Supabase → Settings → API Keys →「Publishable key」那一列的複製鈕
+  // 長得像 sb_publishable_xxxxxxxxxxxx
   SUPABASE_ANON_KEY: "",
 
   // LINE Developers → 你的 Login channel → Basic settings → Channel ID

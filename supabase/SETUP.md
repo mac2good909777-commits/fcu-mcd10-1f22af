@@ -85,18 +85,53 @@ Callback URL 已存檔。
 
 這是整套唯一的後端程式，負責「LINE 登入 → 換發通行證」。
 
-### 先設 4 個密鑰
+### 先設 3 個密鑰
 
-Supabase → 左側 **Edge Functions** → **Secrets** → 逐一新增：
+介面改版過好幾次，選單很難找。**直接開這個網址**（`_` 會自動對應到你目前的專案）：
+
+```
+https://supabase.com/dashboard/project/_/functions/secrets
+```
+
+逐一新增：
 
 | Name | Value 從哪來 |
 |---|---|
 | `LINE_CHANNEL_ID` | 第 3 步的 Channel ID |
 | `LINE_CHANNEL_SECRET` | 第 3 步的 Channel secret |
-| `JWT_SECRET` | Supabase → Settings → **API** → **JWT Settings** → JWT Secret |
+| `JWT_SECRET` | 見下面「JWT Secret 在哪」 |
 
 > `SUPABASE_URL` 與 `SUPABASE_SERVICE_ROLE_KEY` **不用自己填**，
-> Supabase 會自動注入。
+> Supabase 會自動注入。所以只有 3 個要設。
+
+### JWT Secret 在哪
+
+```
+https://supabase.com/dashboard/project/tjmfhypsigobhgjpkxpp/settings/jwt/legacy
+```
+
+**「Legacy JWT Secret」分頁 → Reveal → 複製那一串。**
+
+#### 為什麼是用 Legacy 這一把（2026-08-29 實地確認）
+
+你的專案現況：
+
+| 金鑰 | 型別 | 狀態 |
+|---|---|---|
+| CURRENT KEY | ECC (P-256) 非對稱 | 目前用來**簽**新 token |
+| PREVIOUS KEY | Legacy HS256（共用密鑰） | 仍然用來**驗**token |
+
+Supabase 在該頁面自己寫的：Legacy JWT secret「**is used to only verify**
+JSON Web Tokens by Supabase products」。
+
+我們的 `auth` function 需要**自己簽**一張 token，而 ECC 的私鑰
+Supabase 不給匯出 —— 所以只能用 HS256 共用密鑰簽。
+簽出來的 token 由 Legacy key 驗證通過，這條路現在是通的。
+
+⚠️ **唯一要記住的事：不要去按「Rotate」或「Revoke」那個 Legacy key。**
+一旦撤銷，所有人的登入會同時失效（畫面不會報錯，只會變成什麼都讀不到）。
+真的哪天被 Supabase 停用，改法是換成 Supabase Auth 帳號 +
+Custom Access Token Hook，那是另一次改版，不是小修。
 
 ### 再部署程式
 
@@ -114,7 +149,7 @@ cd "C:/Users/dell/Documents/Claude-DT/projects/20260829-逢甲建碩第10屆介�
 supabase functions deploy auth --project-ref <你的專案ref>
 ```
 
-（專案 ref 是網址 `https://xxxx.supabase.co` 中間那串 `xxxx`）
+（你的專案 ref 是 `tjmfhypsigobhgjpkxpp`）
 
 ✅ **確認**：Edge Functions 清單裡 `auth` 顯示 **Active**。
 
@@ -126,11 +161,20 @@ supabase functions deploy auth --project-ref <你的專案ref>
 
 ```js
 const CONFIG = {
-  SUPABASE_URL:      "https://xxxxxxxx.supabase.co",   // Settings → Data API → Project URL
-  SUPABASE_ANON_KEY: "eyJhbGci....",                   // Settings → API Keys → anon / publishable
-  LINE_CHANNEL_ID:   "2011xxxxxx"                      // 第 3 步的 Channel ID
+  SUPABASE_URL:      "https://tjmfhypsigobhgjpkxpp.supabase.co",  // ← 我已經填好
+  SUPABASE_ANON_KEY: "sb_publishable_xxxxxxxx",                   // ← 還缺
+  LINE_CHANNEL_ID:   "2011xxxxxx"                                 // ← 還缺（第 3 步）
 };
 ```
+
+**Publishable key 在這裡**（按那一列的複製鈕）：
+
+```
+https://supabase.com/dashboard/project/tjmfhypsigobhgjpkxpp/settings/api-keys
+```
+
+⚠️ 同一頁下面的 **Secret key**（`sb_secret_…`）是另一回事，**不要拿錯**。
+那一把等同 service_role，繞過所有權限。
 
 ⛔ **只能放這三個**。`service_role` key 與 LINE Channel secret **絕對不能**
 放進來 —— 這支檔案是公開的，放進去等於把整個資料庫和登入權交出去。
@@ -166,7 +210,7 @@ const CONFIG = {
 3. 網址列直接輸入：
 
    ```
-   https://<你的專案>.supabase.co/rest/v1/members?select=*&apikey=<anon key>
+   https://tjmfhypsigobhgjpkxpp.supabase.co/rest/v1/members?select=*&apikey=<publishable key>
    ```
 
    ✅ **應該回一個權限錯誤**，不是 50 筆資料。
@@ -175,7 +219,7 @@ const CONFIG = {
 4. 再試：
 
    ```
-   https://<你的專案>.supabase.co/rest/v1/rpc/visible_profiles?apikey=<anon key>
+   https://tjmfhypsigobhgjpkxpp.supabase.co/rest/v1/rpc/visible_profiles?apikey=<publishable key>
    ```
 
    ✅ 會回 50 筆，但每一筆的 `data` **只有那位同學設成公開的欄位**，
