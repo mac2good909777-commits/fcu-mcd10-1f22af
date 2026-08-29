@@ -112,17 +112,29 @@ async function handleLineCallback(){
   return true;
 }
 
-// 登入失敗時顯示在畫面上，不要只留在 console
+/* 登入失敗要顯示在畫面上，而且要留得住。
+   ⛔ 不能跟「資料讀取失敗」共用同一個元素 ——
+      之前就是共用，reload() 成功後 showLoadError() 把它設成隱藏，
+      錯誤訊息只閃一下就被擦掉，使用者只看到「紅色秒閃過」。
+   ⚠️ 順手存進 localStorage：訊息閃掉了還查得到，
+      不然除錯只能靠使用者的眼睛快不快。 */
 function loginFailed(msg, detail){
   console.error("登入失敗", msg, detail);
-  const bar = el("loaderr");
-  if(bar){
-    bar.style.display = "block";
-    bar.innerHTML = `<b>登入沒有成功</b><br>${esc(msg)}` +
-      (detail ? `<br><span style="opacity:.85;font-size:.8rem">${esc(JSON.stringify(detail))}</span>` : "") +
-      `<br><button class="btn btn-sm" style="margin-top:8px;background:#fff;color:var(--p-700)"
-         onclick="lineLogin()">再試一次</button>`;
-  }
+  try{
+    localStorage.setItem("fcu10_last_login_error",
+      JSON.stringify({ at: new Date().toISOString(), msg, detail }));
+  }catch(e){}
+  const bar = el("loginerr");
+  if(!bar) return;
+  bar.style.display = "block";
+  bar.innerHTML = `<b>登入沒有成功</b><br>${esc(msg)}` +
+    (detail ? `<br><span style="opacity:.85;font-size:.8rem">${esc(JSON.stringify(detail))}</span>` : "") +
+    `<div style="display:flex;gap:8px;margin-top:10px">
+       <button class="btn btn-sm" style="background:#fff;color:var(--p-700)"
+         onclick="lineLogin()">再試一次</button>
+       <button class="btn btn-sm" style="background:transparent;color:#fff;border:1px solid #fff9"
+         onclick="this.closest('#loginerr').style.display='none'">關閉</button>
+     </div>`;
 }
 
 // 重新整理後恢復登入狀態
