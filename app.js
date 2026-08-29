@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v1.7　2026-08-30";
+const VERSION = "v1.8　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -681,7 +681,9 @@ function render_mdetail(){
         <div>
           <h3>${esc(m.name)}${nick ? `<span style="font-size:.82rem;color:var(--muted);font-weight:500">（${esc(nick)}）</span>` : ""}</h3>
           <div class="hint" style="margin-top:2px">${co || ti
-            ? `${esc(co || "")}　${esc(ti || "")}` : `<span class="locked">${LOCKED}</span>`}</div>
+            ? `${esc(co || "")}　${esc(ti || "")}`
+            : isMe ? `<span class="locked">還沒填公司職稱</span>`
+                   : `<span class="locked">${LOCKED}</span>`}</div>
           <div class="pills" style="margin-top:7px">
             ${m.officer ? `<span class="pill solid" style="background:var(--c-orange)">${esc(m.officer)}</span>` : ""}
             <span class="pill"><span class="gdot" style="background:${groupColor(m.group)}"></span>${esc(groupName(m.group))}</span>
@@ -724,16 +726,26 @@ function render_mdetail(){
       ${["q_why","q_thesis","q_team"].some(k => v(k)) ? `<div class="qsec">
         ${["q_why","q_thesis","q_team"].map(k => block(k)).join("")}</div>` : ""}
 
-      ${!anything ? `<div class="block"><h4>更多資料</h4>
-        <div class="notice-lock" style="margin:0">
-          這位同學的資料<b>設定成登入後才看得到</b>。<br>
-          名冊先讓大家對照認領自己，其餘由每個人自己決定給誰看。
-        </div>
-        <div class="actions" style="margin-top:12px">
-          <button class="btn btn-primary" onclick="onMe()">登入查看</button></div></div>`
+      ${!anything ? (isMe
+        // ⛔ 自己的頁面永遠不該出現「登入查看」—— 他已經登入了。
+        //    看不到只有一個原因：還沒填。要引導去填，不是叫他再登入一次。
+        ? `<div class="block"><h4>你的資料還是空的</h4>
+            <div class="notice-lock" style="margin:0">
+              公司、職稱、學歷這些<b>本來會從新生名冊帶進來</b>，
+              現在是空的，代表存檔沒有成功或還沒填過。<br>
+              點下面進去填，每一欄都可以自己選給誰看。
+            </div>
+            <div class="actions" style="margin-top:12px">
+              <button class="btn btn-primary" onclick="go('profile')">去填我的資料</button></div></div>`
+        : `<div class="block"><h4>更多資料</h4>
+            <div class="notice-lock" style="margin:0">
+              這位同學的資料<b>設定成登入後才看得到</b>，或是他還沒填。<br>
+              名冊先讓大家對照認領自己，其餘由每個人自己決定給誰看。
+            </div>
+            ${ME ? "" : `<div class="actions" style="margin-top:12px">
+              <button class="btn btn-primary" onclick="onMe()">登入查看</button></div>`}</div>`)
       : ME ? `<div class="block"><h4>聯絡方式</h4>
-          <div class="hint">電話與 Email 一律走後端驗身分才吐，不寫進網站檔案裡。
-            這一塊等接上 Supabase 才會有內容。</div></div>` : ""}
+          <div class="hint">電話與 Email 一律走後端驗身分才吐，不寫進網站檔案裡。</div></div>` : ""}
 
       ${isMe ? `<div class="actions" style="margin-top:16px">
         <button class="btn btn-primary" onclick="go('profile')">編輯我的資料</button></div>

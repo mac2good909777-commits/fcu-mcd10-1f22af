@@ -246,14 +246,30 @@ const SB = {
     const rows = await rpc("visible_profiles");
     return Object.fromEntries(rows.map(r => [r.member_id, r.data || {}]));
   },
-  // 存自己的資料。RLS 保證只能改自己那一列。
+  /* 存自己的資料。RLS 保證只能改自己那一列。
+     ⛔ 一定要 return=representation 並檢查回傳筆數。
+        RLS 擋下來時 PATCH 是「成功但影響 0 列」——
+        不檢查的話畫面會顯示「已儲存」，其實什麼都沒寫進去。
+        這種沉默失敗最難查。 */
   async saveProfile(fields, vis){
     if(!ME) throw new Error("請先登入");
     const body = Object.assign({}, fields, { vis, updated_at: new Date().toISOString() });
-    await rest("profiles?member_id=eq." + ME.id, {
+    const rows = await rest("profiles?member_id=eq." + ME.id, {
       method: "PATCH",
-      headers: sbHeaders({ "Content-Type": "application/json", Prefer: "return=minimal" }),
+      headers: sbHeaders({ "Content-Type": "application/json", Prefer: "return=representation" }),
       body: JSON.stringify(body)
     });
+    if(!Array.isArray(rows) || rows.length === 0){
+      throw new Error("資料庫沒有寫進任何一列 —— 通常是登入身分沒被資料庫認可。" +
+                      "請登出再登入一次；若還是這樣，把這句話告訴我。");
+    }
+    return rows[0];
+  },
+  /* 診斷：資料庫「認為」我是誰。
+     前端說已登入、資料庫卻認不出來 —— 這是最容易卡住的一種狀況，
+     所以要有辦法直接問。 */
+  async dbWhoAmI(){
+    const rows = await rest("profiles?select=member_id&limit=1");
+    return { canReadOwnProfile: Array.isArray(rows) ? rows.length : "?" };
   }
 };
