@@ -180,8 +180,6 @@ const COURSE_INFO = {
     tab:"依開課系所查詢"
   },
   links: [
-    { label:"學程「碩士專業」頁", url:"https://mcd.fcu.edu.tw/%e7%a2%a9%e5%a3%ab%e5%b0%88%e6%a5%ad/" },
-    { label:"註冊課務組（選課、學籍、成績）", url:"https://registration.fcu.edu.tw/" },
-    { label:"iLearn 數位學習平台", url:"https://ilearn.fcu.edu.tw/" }
+    { label:"學程「碩士專業」頁", url:"https://mcd.fcu.edu.tw/%e7%a2%a9%e5%a3%ab%e5%b0%88%e6%a5%ad/" }
   ]
 };
