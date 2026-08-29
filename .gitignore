@@ -1,0 +1,7 @@
+# 原始名冊有學號，絕對不進 repo
+資料/
+*.xlsx
+~$*
+# 系統雜物
+.DS_Store
+Thumbs.db

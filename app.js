@@ -1,0 +1,1300 @@
+/* ════════════════════════════════════════════════════════════════
+   逢甲大學建設碩士在職學位學程　第十屆同學看板
+   版型階段：名冊是真的（data.js／private.js），公告活動是示範內容，
+   登入是假的（「我的」頁面可切換身分預覽）。
+
+   ⛔ 接 Supabase 時只改 db 這一層（見下方「後端接點」），
+      render 那些函式一行都不用動 —— 這是刻意的分層，
+      不要為了方便在 render 裡直接打 fetch。
+   ════════════════════════════════════════════════════════════════ */
+
+const VERSION = "v1.0　2026-08-29";
+const BACKEND = "mock";           // "mock" | "supabase"
+
+/* ── 後端接點 ────────────────────────────────────────────────────
+   正式接 Supabase 時，把每個 mock 分支換成 rest()／Edge Function：
+
+     const SB  = "https://<專案>.supabase.co";
+     const KEY = "<publishable key>";            // 公開金鑰，本來就放前端
+     async function rest(path){
+       const r = await fetch(SB+"/rest/v1/"+path,
+         {headers:{apikey:KEY, Authorization:"Bearer "+KEY}});
+       if(!r.ok) throw new Error("讀取失敗 "+r.status);
+       return r.json();
+     }
+
+   ⚠️ PostgREST 是「逐欄授權」：select 清單裡只要有一欄沒 grant，
+      整個查詢會 400（不是那一欄變空），全站資料一起消失。
+      所以新增欄位時要像 TC8 那樣寫「完整清單被拒就退回舊清單」的退路。
+   ⚠️ 個資（電話、Email、LINE ID）不要放進公開可讀的 view，
+      要走 Edge Function 驗身分後才吐。                              */
+const db = {
+  async members(){
+    // cohort 統一在這裡補上，不寫進名冊那 50 行 —— 現在整批都是第十屆，
+    // 之後多一屆時是新增資料列，不是回頭改舊的。
+    if(BACKEND === "mock")
+      return structuredClone(MOCK_MEMBERS).map(m => ({ cohort:CURRENT_COHORT, ...m }));
+    // return rest("members?select=" + MEMBER_FIELDS + "&is_member=eq.true&order=sort.asc");
+  },
+  async posts(){
+    if(BACKEND === "mock") return structuredClone(MOCK_POSTS);
+    // return rest("posts?select=" + POST_FIELDS + "&order=created_at.desc");
+  },
+  async needs(){
+    if(BACKEND === "mock") return structuredClone(MOCK_NEEDS);
+    // return rest("needs?select=id,author_id,title,body,done,helpers,created_at&order=created_at.desc");
+  },
+  async albums(){
+    if(BACKEND === "mock") return structuredClone(MOCK_ALBUMS);
+    // return rest("albums?select=id,title,date,cover,count&order=date.desc");
+  },
+  // 席次是公開數字（只吐數量、不吐是誰）；「我報名了哪幾場」要驗身分
+  async seats(){
+    if(BACKEND === "mock"){
+      const s = {};
+      MOCK_POSTS.filter(p => p.capacity).forEach(p => {
+        s[p.id] = { capacity:p.capacity, reserved_seats:p.reserved_seats||0,
+                    taken: MOCK_SEATS_TAKEN[p.id] || 0, waiting: MOCK_WAITING[p.id] || 0 };
+      });
+      return s;
+    }
+    // return rest("v_post_seats?select=post_id,capacity,reserved_seats,taken,waiting");
+  },
+  async mySignups(){
+    if(BACKEND === "mock") return new Map(MY_MOCK_SIGNUPS.map(x => [x.post_id, x]));
+    // return signupApi("mine");
+  },
+  async signup(postId, on){
+    if(BACKEND === "mock"){
+      if(on){ MY_MOCK_SIGNUPS.push({post_id:postId, status:"ok"}); MOCK_SEATS_TAKEN[postId] = (MOCK_SEATS_TAKEN[postId]||0)+1; }
+      else  { MY_MOCK_SIGNUPS = MY_MOCK_SIGNUPS.filter(x => x.post_id !== postId); MOCK_SEATS_TAKEN[postId] = Math.max(0,(MOCK_SEATS_TAKEN[postId]||0)-1); }
+      return {ok:true};
+    }
+    // return signupApi(on ? "join" : "cancel", {post_id:postId});
+  }
+};
+
+// 假的報名狀態（版型用）
+const MOCK_SEATS_TAKEN = { 101: 23, 102: 41, 103: 0 };
+const MOCK_WAITING     = { 102: 0 };
+let   MY_MOCK_SIGNUPS  = [];
+
+/* ── 狀態 ──────────────────────────────────────────────────────── */
+let ME = null, MEMBERS = [], POSTS = [], NEEDS = [], ALBUMS = [], SEATS = {}, MY_SIGNUPS = new Map();
+let VIEW = "home", DETAIL = null;
+let M_FILTER = { q:"", group:"all", ind:"all" };
+let ACT_TAB = "all", NEED_TAB = "open";
+
+/* ── 小工具 ────────────────────────────────────────────────────── */
+const el   = id => document.getElementById(id);
+const esc  = s => (s ?? "").toString().replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+// ⛔ 要塞進 onclick="f('這裡')" 的值一律用 escAttr。
+//    esc 沒處理單引號，名字填 X'+alert(1)+'Y 就會逃出字串變成程式碼。
+//    ⚠️ 不能改用 HTML 實體 &#39; —— 瀏覽器會先解回單引號才交給 JS，等於沒防。
+const escAttr = s => esc(s).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+
+// ⚠️ 日期一律指定 Asia/Taipei：使用者可能在別的時區，
+//    但「今天」對同學永遠是台灣的今天。
+const twDate = d => new Date(d).toLocaleDateString("sv-SE", { timeZone:"Asia/Taipei" });
+const isToday = iso => iso && twDate(iso) === twDate(new Date());
+
+const WD = ["日","一","二","三","四","五","六"];
+function whenLabel(iso){
+  if(!iso) return "";
+  const d = new Date(iso);
+  const s = d.toLocaleString("zh-TW", { timeZone:"Asia/Taipei", month:"numeric", day:"numeric" });
+  const w = new Date(d.toLocaleString("en-US", { timeZone:"Asia/Taipei" })).getDay();
+  return `${s}（${WD[w]}）`;
+}
+function timeLabel(iso){
+  if(!iso) return "";
+  return new Date(iso).toLocaleTimeString("zh-TW",
+    { timeZone:"Asia/Taipei", hour:"2-digit", minute:"2-digit", hour12:false });
+}
+const memberOf = id => MEMBERS.find(m => m.id === id) || null;
+
+/* ── 公司職稱的門檻 ──────────────────────────────────────────────
+   名冊對未登入的人只顯示【姓名】—— 目的是讓同學進來認領對照自己。
+   公司、職稱、產業別、學歷要登入後才看得到。
+
+   ⚠️ 現階段這是【前端遮蔽】，不是權限。private.js 被瀏覽器載入了，
+      翻開發者工具就看得到。真正生效是接上 Supabase、
+      由 Edge Function 驗完身分才吐那一天（見 README）。
+      在那之前，網址請當作非公開的。                              */
+
+/* ── 可見範圍 ────────────────────────────────────────────────────
+   每一個欄位由本人自己決定給誰看。四級，由寬到嚴：
+
+     public   任何人（含未登入）
+     alumni   全學程校友（跨屆）← 校友會的預留，現在只有一屆＝等同 class
+     class    本屆同學（登入後）← 預設
+     private  只有自己
+
+   ⛔ 預設一律 class，不是 public。
+      同學是把資料交給「班上」，不是交給網際網路 ——
+      要公開必須是他自己動手打開，不能是我們幫他決定的。          */
+const VIS = {
+  public:  { label:"公開",     hint:"任何人都看得到，包含沒登入的訪客",  rank:0 },
+  alumni:  { label:"全學程校友", hint:"跨屆的學長姊學弟妹（校友會啟用後生效）", rank:1 },
+  class:   { label:"本屆同學",   hint:"登入的第十屆同學（預設）",          rank:2 },
+  private: { label:"只有自己",   hint:"誰都看不到，只有你自己編輯時看得到", rank:3 }
+};
+// 我現在是什麼身分 → 我最多看得到 rank 幾的欄位
+function viewerRank(target){
+  if(ME && target && ME.id === target.id) return 9;          // 自己看自己：全都看得到
+  if(!ME) return 0;                                          // 沒登入
+  if(target && ME.cohort !== target.cohort) return 1;         // 別屆的校友
+  return 2;                                                  // 同屆同學
+}
+
+/* ── 個人資料的欄位定義 ──────────────────────────────────────────
+   欄位順序＝編輯表單的順序，也是個人頁的顯示順序。
+   seed:true 代表這一欄是從新生名冊帶進來的，本人可以改。          */
+const PROFILE_FIELDS = [
+  { key:"nickname", label:"小名／稱呼", type:"text",   vis:"class",
+    hint:"名冊上是本名，這裡可以填大家平常怎麼叫你" },
+  { key:"company",  label:"公司",       type:"text",   vis:"class", seed:true },
+  { key:"title",    label:"職稱",       type:"text",   vis:"class", seed:true },
+  { key:"industry", label:"產業分類",   type:"select", vis:"class", seed:true,
+    hint:"名冊上的服務單位幫你分好了，不對就改。這欄是名冊的篩選依據" },
+  { key:"tag",      label:"產業標籤",   type:"text",   vis:"class",
+    hint:"比分類更精確的一句。例：工業地產、危老重建、TOD" },
+  { key:"headline", label:"一句話自介", type:"text",   vis:"class",
+    hint:"會用引號顯示在名冊卡片上，寫得有記憶點一點" },
+  { key:"intro",    label:"簡介",       type:"area",   vis:"class",
+    hint:"你在做什麼、幫誰解決什麼問題" },
+  { key:"resource", label:"我可以提供", type:"area",   vis:"class", key_field:true,
+    hint:"⭐ 這欄和下一欄是媒合的關鍵 —— 同學是靠這些找到你的" },
+  { key:"wish",     label:"我想找",     type:"area",   vis:"class", key_field:true,
+    hint:"⭐ 你希望在這個班遇到什麼人、什麼機會" },
+  { key:"topics",   label:"關注主題",   type:"text",   vis:"class",
+    hint:"用頓號分開。例：工業地產、實價登錄、土地開發" },
+  { key:"edu_bg",   label:"學歷",       type:"text",   vis:"class", seed:true },
+  { key:"web",      label:"網站",       type:"text",   vis:"class",
+    hint:"個人網站、公司網站、作品集都可以" },
+  { key:"line_url", label:"LINE 加入好友連結", type:"text", vis:"class", line_help:true,
+    hint:"貼上你的 LINE 連結，同學就能直接加你，不用先交換手機號碼" },
+  { key:"q_why",    label:"為什麼來讀建設碩士？", type:"area", vis:"class", optional:true },
+  { key:"q_thesis", label:"論文或專題想做什麼方向？", type:"area", vis:"class", optional:true },
+  { key:"q_team",   label:"想找什麼樣的同學一起做報告？", type:"area", vis:"class", optional:true }
+];
+const FIELD = Object.fromEntries(PROFILE_FIELDS.map(f => [f.key, f]));
+
+/* 本人自己編輯過的內容。
+   ⚠️ 版型階段存在這台瀏覽器的 localStorage，換一台電腦就不見了 ——
+      這是「先讓你試填看看」，不是正式儲存。
+      接上 Supabase 之後改存 members 表，並由 RLS 保證只有本人能改自己那列。 */
+const EDIT_KEY = "fcu10_profile_edits";
+function loadEdits(){
+  try{ return JSON.parse(localStorage.getItem(EDIT_KEY) || "{}"); }catch(e){ return {}; }
+}
+function saveEdits(o){
+  try{ localStorage.setItem(EDIT_KEY, JSON.stringify(o)); }catch(e){}
+}
+// 完整的個人資料＝名冊帶進來的 ＋ 本人改過的
+function fullProfile(id){
+  const seed = (typeof PRIVATE_PROFILE !== "undefined" && PRIVATE_PROFILE[id]) || {};
+  const mine = loadEdits()[id] || {};
+  return { ...seed, ...mine, vis:{ ...(seed.vis || {}), ...(mine.vis || {}) } };
+}
+// 這個欄位設定給誰看
+function fieldVis(id, key){
+  return fullProfile(id).vis[key] || FIELD[key]?.vis || "class";
+}
+// 我看不看得到某人的某一欄
+function canSee(member, key){
+  const p = fullProfile(member.id);
+  if(!p[key]) return false;                              // 沒填就沒有
+  return viewerRank(member) >= VIS[fieldVis(member.id, key)].rank;
+}
+const seeVal = (member, key) => canSee(member, key) ? fullProfile(member.id)[key] : null;
+// 這個人有沒有【任何一欄】是我看得到的（決定卡片要不要顯示鎖頭）
+const seesAnything = m => PROFILE_FIELDS.some(f => canSee(m, f.key));
+
+/* 舊呼叫點的相容層：profileOf 回傳「我看得到的那些欄位」。
+   ⛔ 不要改回直接讀 PRIVATE_PROFILE —— 那會跳過可見範圍檢查。 */
+function profileOf(id){
+  const m = memberOf(id);
+  if(!m) return null;
+  const out = {};
+  PROFILE_FIELDS.forEach(f => { const v = seeVal(m, f.key); if(v) out[f.key] = v; });
+  return Object.keys(out).length ? out : null;
+}
+const LOCKED = "🔒 登入後可見";
+// 空狀態要說明「這一區是幹嘛的」。
+// 只寫「還沒有公告」，看的人會以為系統壞了或資料沒載進來。
+const emptyBox = (title, desc) =>
+  `<div class="empty"><b>${esc(title)}</b><div>${esc(desc)}</div></div>`;
+
+/* ⛔ 使用者填的網址不能直接塞進 href。
+   填 javascript:alert(1) 就會變成可以點的程式碼 —— 只放行 http/https。
+   ⚠️ 這裡回傳 null 代表「有填但不安全」，畫面要當作沒填，不要照原樣印出來。 */
+function safeUrl(u){
+  const t = (u || "").trim();
+  return /^https?:\/\//i.test(t) ? t : null;
+}
+/* 把網址畫成 QR（SVG）。
+   ⛔ 不要用 api.qrserver.com 那類第三方服務 —— 那等於把每位同學的
+      LINE 連結送到別人的伺服器上，而且對方掛掉整頁就破圖。
+      qrcode-generator 在瀏覽器本機算，離線也會動。
+   ⚠️ typeNumber 給 0 ＝ 讓它自己挑最小夠用的版本；
+      寫死版本的話，網址長一點就會直接丟例外。 */
+function qrSVG(text, px){
+  try{
+    const qr = qrcode(0, "M");          // M：容錯 15%，印出來被手指遮到一角還讀得到
+    qr.addData(text); qr.make();
+    const n = qr.getModuleCount(), b = 4, size = n + b * 2;
+    let d = "";
+    for(let r = 0; r < n; r++)
+      for(let c = 0; c < n; c++)
+        if(qr.isDark(r, c)) d += `M${c + b} ${r + b}h1v1h-1z`;
+    return `<svg class="qrimg" viewBox="0 0 ${size} ${size}" width="${px}" height="${px}"
+      shape-rendering="crispEdges" role="img" aria-label="QR code">
+      <rect width="${size}" height="${size}" fill="#fff"/>
+      <path d="${d}" fill="var(--p-700)"/></svg>`;
+  }catch(e){
+    console.error("QR 產生失敗", e);
+    return "";
+  }
+}
+// LINE 的連結長這兩種：個人 line.me/ti/p/xxx、官方帳號 lin.ee/xxx
+const isLineUrl = u => /^https:\/\/(line\.me\/ti\/p\/|lin\.ee\/)/i.test((u || "").trim());
+// 首頁「班級幹部」那一區的排序：照職務位階，不是照 id。
+// 班代排第一、組代排最後 —— 那是全班的視角。
+const officerRank = m => {
+  const i = OFFICER_ORDER.indexOf(m.officer);
+  return i < 0 ? 99 : i;
+};
+// 名冊裡的排序：組代表最前面，接著其他幹部，再來才是照學號順序。
+// ⚠️ 跟 officerRank 是兩套，不要合併：
+//    名冊是【一組一組看】的，找人第一個想找的是自己這組的組代；
+//    首頁幹部區是【全班一起看】的，那裡班代才該排第一。
+const isGroupRep = m => /組代$/.test(m.officer || "");
+const rosterRank = m => isGroupRep(m) ? 0 : (m.officer ? 1 : 2);
+// 卡片上的職務標籤：組代只寫「組代」。
+// 「智慧防災組代」六個字會撐出卡片右上角，而卡片本來就已經標了組別色。
+const officerBadge = m => isGroupRep(m) ? "組代" : m.officer;
+function statusPill(m){
+  if(m.status === "leave")        return `<span class="pill">休學中</span>`;
+  if(m.status === "leave_active") return `<span class="pill">休學（仍參與）</span>`;
+  return "";
+}
+const nameOf   = id => (memberOf(id) || {}).name || "";
+const initials = n => (n || "").slice(-2);
+const groupColor = g => (GROUPS[g] || {}).color || "var(--p-500)";
+const groupName  = g => (GROUPS[g] || {}).name || "";
+const isOfficer  = () => !!(ME && ME.officer);
+
+/* ── 主視覺：四種風格，可即時切換 ────────────────────────────────
+   ?style=theater|skyline|facade|blueprint 或「我的」頁面切換。
+   決定後把 HERO_DEFAULT 改掉就好，其餘幾張圖可以刪。           */
+const HEROES = {
+  renyan:   { img:"assets/hero-renyan.jpg",   label:"人言大樓",
+              note:"逢甲最具代表性的建築，校內地標。" },
+  memorial: { img:"assets/hero-memorial.jpg", label:"丘逢甲紀念館",
+              note:"校名的由來，安靜、有份量。" },
+  aerial:   { img:"assets/hero-aerial.jpg",   label:"校園空拍",
+              note:"看得到整個校區的規模。" },
+  blueprint:{ img:"assets/hero-blueprint.jpg",label:"藍圖規劃",
+              note:"不用校景，走規劃專業的抽象路線。" }
+};
+const HERO_DEFAULT = "renyan";
+function heroKey(){
+  const q = new URLSearchParams(location.search).get("style");
+  if(q && HEROES[q]) return q;
+  try{ const s = localStorage.getItem("fcu10_hero"); if(s && HEROES[s]) return s; }catch(e){}
+  return HERO_DEFAULT;
+}
+function setHero(k){
+  try{ localStorage.setItem("fcu10_hero", k); }catch(e){}
+  render(VIEW);
+}
+function heroHTML(){
+  const h = HEROES[heroKey()];
+  const blocks = ["--c-sky","--c-green","--c-yellow","--c-orange","--c-purple"]
+    .map(c => `<i style="background:var(${c})"></i>`).join("");
+  return `<div class="hero">
+    <img src="${h.img}" alt="">
+    <div class="tint"></div>
+    <div class="blocks">${blocks}</div>
+    <div class="txt">
+      <div class="kicker">逢甲大學　FENG CHIA UNIVERSITY</div>
+      <h2>建設碩士在職學位學程<br>第十屆同學看板</h2>
+      <div class="line">${CLASS_INFO.year}　共 ${CLASS_INFO.count} 位同學</div>
+    </div>
+  </div>`;
+}
+
+/* ── 席次 ──────────────────────────────────────────────────────── */
+function seatsLeft(postId){
+  const s = SEATS[postId];
+  if(!s || s.capacity == null) return null;      // 沒設上限＝不限名額
+  return Math.max(0, s.capacity - (s.reserved_seats || 0) - (s.taken || 0));
+}
+function signupBlock(p){
+  if(!p.signup_open) return `<div class="seatline">尚未開放報名</div>`;
+  const left = seatsLeft(p.id), st = SEATS[p.id] || {};
+  const wait = st.waiting ? `　候補 <b>${st.waiting}</b> 位` : "";
+  if(left === null) return `<div class="seatline">開放報名中${wait}</div>`;
+  if(left === 0)    return `<div class="seatline full">名額已滿${p.waitlist_open ? "，可以登記候補" : ""}${wait}</div>`;
+  return `<div class="seatline">還剩 <b>${left}</b> 個位子${wait}</div>`;
+}
+function signupButton(p){
+  if(!p.signup_open) return "";
+  if(!ME) return `<button class="btn btn-primary" onclick="onMe()">登入後報名</button>`;
+  if(MY_SIGNUPS.has(p.id))
+    return `<button class="btn btn-done" onclick="doSignup(${p.id}, false)">✓ 已報名（點此取消）</button>`;
+  const left = seatsLeft(p.id);
+  if(left === 0 && !p.waitlist_open) return `<button class="btn btn-done" disabled>名額已滿</button>`;
+  return `<button class="btn btn-primary" onclick="doSignup(${p.id}, true)">${left === 0 ? "登記候補" : "我要報名"}</button>`;
+}
+// 報到：只在活動當天可按。平常留著但變灰 —— 按鈕消失比按鈕變灰更難懂。
+function checkinButton(p){
+  if(!p.event_at) return "";
+  if(!isToday(p.event_at)) return `<button class="btn btn-done" disabled>📍 報到（當天開放）</button>`;
+  if(!ME) return `<button class="btn btn-checkin" onclick="onMe()">登入後報到</button>`;
+  return `<button class="btn btn-checkin" onclick="alert('版型階段：正式版會跳出報到碼輸入框')">📍 報到</button>`;
+}
+async function doSignup(postId, on){
+  await db.signup(postId, on);
+  await reload();
+  render(VIEW);
+}
+
+/* ── 首頁 ──────────────────────────────────────────────────────── */
+function render_home(){
+  const events   = POSTS.filter(p => p.kind === "event" && p.event_at)
+                        .sort((a,b) => new Date(a.event_at) - new Date(b.event_at));
+  const next     = events[0];
+  const notices  = POSTS.filter(p => p.kind === "notice").slice(0, 3);
+  const surveys  = POSTS.filter(p => p.kind === "survey");
+  const officers = MEMBERS.filter(m => m.officer).sort((a,b) => officerRank(a) - officerRank(b));
+
+  el("v-home").innerHTML = heroHTML() + `
+    ${next ? `
+    <div class="sec"><h2>下一場</h2><button class="more" onclick="go('acts')">全部活動 ›</button></div>
+    <article class="card bigcard">
+      <div class="band">
+        <div class="kicker">${esc(next.org || "班級")}活動</div>
+        <div class="t">${esc(next.title)}</div>
+      </div>
+      <div class="body">
+        <div class="meta">
+          <span>🗓 <b>${whenLabel(next.event_at)}</b>　${esc(next.time_text || timeLabel(next.event_at))}</span>
+        </div>
+        <div class="meta" style="margin-top:5px"><span>📍 ${esc(next.place || "")}</span></div>
+        ${next.fee ? `<div class="meta" style="margin-top:5px"><span>💰 ${esc(next.fee)}</span></div>` : ""}
+        ${signupBlock(next)}
+        <div class="actions">
+          ${signupButton(next)}
+          <button class="btn btn-ghost" onclick="openPost(${next.id})">看詳情</button>
+        </div>
+        <div class="actions" style="margin-top:8px">${checkinButton(next)}</div>
+      </div>
+    </article>` : ""}
+
+    ${surveys.length ? `
+    <div class="sec"><h2>待填問卷</h2></div>
+    ${surveys.map(s => `
+      <article class="card pad" onclick="openPost(${s.id})" style="cursor:pointer">
+        <div class="pills" style="margin-bottom:6px">
+          ${s.required ? `<span class="pill warn">必填</span>` : `<span class="pill">選填</span>`}
+          ${s.deadline ? `<span class="pill">${esc(s.deadline)} 截止</span>` : ""}
+        </div>
+        <b>${esc(s.title)}</b>
+        <div class="hint">已完成 ${s.done_count || 0} / ${CLASS_INFO.count} 人</div>
+      </article>`).join("")}` : ""}
+
+    <div class="sec"><h2>最新公告</h2><button class="more" onclick="go('notices')">更多 ›</button></div>
+    ${notices.length ? notices.map(noticeCard).join("") : emptyBox("還沒有公告", "幹部發布的班務公告會出現在這裡。標記「重要」的會置頂並顯示紅字。")}
+
+    <div class="sec"><h2>班級幹部</h2><button class="more" onclick="go('members')">全班名冊 ›</button></div>
+    <div class="mgrid">${officers.map(memberCard).join("")}</div>
+
+    <div class="sec"><h2>關於這個班</h2></div>
+    <article class="card pad">
+      <dl class="kv">
+        <dt>學校</dt><dd>${esc(CLASS_INFO.school)}</dd>
+        <dt>學程</dt><dd>${esc(CLASS_INFO.program)}<div class="hint">${esc(CLASS_INFO.program_en)}</div></dd>
+        <dt>屆別</dt><dd>${esc(CLASS_INFO.cohort)}（${esc(CLASS_INFO.year)}）</dd>
+        <dt>人數</dt><dd>${CLASS_INFO.count} 位　<span class="hint" style="display:inline">在學 ${CLASS_INFO.active} 位</span></dd>
+        <dt>專業組別</dt><dd>${Object.values(GROUPS).map(g =>
+          `<span class="pill" style="margin:2px 3px 2px 0"><span class="gdot" style="background:${g.color}"></span>${esc(g.name)}</span>`).join("")}</dd>
+        <dt>學程網站</dt><dd><a href="${CLASS_INFO.site}" target="_blank" rel="noopener"
+          style="color:var(--p-500);font-weight:700">mcd.fcu.edu.tw ↗</a></dd>
+      </dl>
+    </article>`;
+}
+
+function noticeCard(p){
+  return `<article class="card pad" onclick="openPost(${p.id})" style="cursor:pointer">
+    ${p.important ? `<div class="pills" style="margin-bottom:6px"><span class="pill warn">重要</span></div>` : ""}
+    <b style="${p.important ? "color:var(--c-red)" : ""}">${esc(p.title)}</b>
+    <div class="hint">${esc(nameOf(p.author_id))}　${twDate(p.created_at)}</div>
+  </article>`;
+}
+
+/* ── 公告 ──────────────────────────────────────────────────────── */
+function render_notices(){
+  const list = POSTS.filter(p => p.kind === "notice" || p.kind === "survey")
+                    .sort((a,b) => (b.important?1:0) - (a.important?1:0)
+                                || new Date(b.created_at) - new Date(a.created_at));
+  el("v-notices").innerHTML = `
+    <div class="sec"><h2>公告與問卷</h2>
+      ${isOfficer() ? `<button class="more" onclick="alert('版型階段：正式版可在這裡發布')">＋ 發布</button>` : ""}</div>
+    ${list.length ? list.map(p => p.kind === "survey" ? surveyCard(p) : noticeCard(p)).join("")
+                  : emptyBox("還沒有公告或問卷",
+                      "班務公告、班費說明、問卷調查都放這裡。問卷可以標必填與截止日；完成人數由幹部手動更新 —— 系統刻意不記錄誰填了誰沒填。")}`;
+}
+function surveyCard(p){
+  return `<article class="card pad" onclick="openPost(${p.id})" style="cursor:pointer">
+    <div class="pills" style="margin-bottom:6px">
+      <span class="pill solid" style="background:var(--c-sky)">問卷</span>
+      ${p.required ? `<span class="pill warn">必填</span>` : ""}
+      ${p.deadline ? `<span class="pill">${esc(p.deadline)} 截止</span>` : ""}
+    </div>
+    <b>${esc(p.title)}</b>
+    <div class="hint">已完成 ${p.done_count || 0} / ${CLASS_INFO.count} 人
+      ・${esc(nameOf(p.author_id))}</div>
+  </article>`;
+}
+
+/* ── 活動 ──────────────────────────────────────────────────────── */
+function render_acts(){
+  const all = POSTS.filter(p => p.kind === "event")
+                   .sort((a,b) => new Date(a.event_at) - new Date(b.event_at));
+  const list = ACT_TAB === "all" ? all : all.filter(p => (p.org || "班級") === ACT_TAB);
+  // 照月份分組：在職專班一個月大概就一兩場，平鋪會看不出節奏
+  const months = {};
+  list.forEach(p => {
+    const m = new Date(p.event_at).toLocaleDateString("zh-TW",
+      { timeZone:"Asia/Taipei", year:"numeric", month:"long" });
+    (months[m] ??= []).push(p);
+  });
+  el("v-acts").innerHTML = `
+    <div class="sec"><h2>活動</h2>
+      ${isOfficer() ? `<button class="more" onclick="alert('版型階段：正式版可在這裡發布')">＋ 發布</button>` : ""}</div>
+    <div class="tools"><div class="chips">
+      ${[["all","全部"],["班級","班級活動"],["學程","學程活動"]].map(([k,l]) =>
+        `<button class="chip${ACT_TAB===k?" on":""}" onclick="ACT_TAB='${k}';render('acts')">${l}</button>`).join("")}
+    </div></div>
+    ${Object.keys(months).length ? Object.entries(months).map(([m, ps]) => `
+      <div class="sec"><h2 style="font-size:.88rem;color:var(--muted)">${m}</h2></div>
+      ${ps.map(eventCard).join("")}`).join("")
+      : emptyBox("還沒有活動",
+          "聚餐、參訪、專題演講都放這裡，會照月份分組。活動可以開放報名、設名額與候補，當天才會出現報到按鈕。")}`;
+}
+function eventCard(p){
+  const left = seatsLeft(p.id);
+  return `<article class="card pad" onclick="openPost(${p.id})" style="cursor:pointer">
+    <div class="pills" style="margin-bottom:7px">
+      <span class="pill solid" style="background:var(--p-700)">${esc(p.org || "班級")}</span>
+      ${isToday(p.event_at) ? `<span class="pill ok">今天</span>` : ""}
+      ${p.signup_open ? (left === 0 ? `<span class="pill warn">已額滿</span>`
+        : left !== null ? `<span class="pill">剩 ${left} 位</span>` : `<span class="pill">開放報名</span>`) : ""}
+      ${MY_SIGNUPS.has(p.id) ? `<span class="pill ok">已報名</span>` : ""}
+    </div>
+    <b style="font-size:1.02rem">${esc(p.title)}</b>
+    <div class="meta" style="margin-top:7px">
+      <span>🗓 ${whenLabel(p.event_at)} ${esc(p.time_text || timeLabel(p.event_at))}</span>
+    </div>
+    <div class="meta" style="margin-top:3px"><span>📍 ${esc(p.place || "")}</span></div>
+  </article>`;
+}
+
+/* ── 貼文詳情（活動／公告／問卷共用）───────────────────────────── */
+function openPost(id){ DETAIL = id; go("pdetail"); }
+function render_pdetail(){
+  const p = POSTS.find(x => x.id === DETAIL);
+  if(!p){ el("v-pdetail").innerHTML = `<div class="empty">找不到這則內容</div>`; return; }
+  const back = p.kind === "event" ? "acts" : "notices";
+  el("v-pdetail").innerHTML = `
+    <div class="backbar"><button onclick="go('${back}')">
+      <svg width="18" height="18" fill="none" stroke="currentColor"><use href="#i-back"/></svg>返回</button></div>
+    <article class="card pad detail">
+      <div class="pills" style="margin-bottom:8px">
+        ${p.kind === "event"  ? `<span class="pill solid" style="background:var(--p-700)">${esc(p.org||"班級")}活動</span>` : ""}
+        ${p.kind === "notice" ? `<span class="pill">公告</span>` : ""}
+        ${p.kind === "survey" ? `<span class="pill solid" style="background:var(--c-sky)">問卷</span>` : ""}
+        ${p.important ? `<span class="pill warn">重要</span>` : ""}
+        ${p.required ? `<span class="pill warn">必填</span>` : ""}
+      </div>
+      <h3>${esc(p.title)}</h3>
+      <dl class="kv">
+        ${p.event_at ? `<dt>時間</dt><dd>${whenLabel(p.event_at)}　${esc(p.time_text || timeLabel(p.event_at))}</dd>` : ""}
+        ${p.place    ? `<dt>地點</dt><dd>${esc(p.place)}
+          <div><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.place)}"
+            target="_blank" rel="noopener" style="color:var(--p-500);font-weight:700;font-size:.85rem">在地圖開啟 ↗</a></div></dd>` : ""}
+        ${p.speaker  ? `<dt>${esc(p.speaker_title || "講者")}</dt><dd>${esc(p.speaker)}</dd>` : ""}
+        ${p.fee      ? `<dt>費用</dt><dd>${esc(p.fee)}</dd>` : ""}
+        ${p.deadline ? `<dt>截止</dt><dd>${esc(p.deadline)}</dd>` : ""}
+        <dt>發布</dt><dd>${esc(nameOf(p.author_id))}　${twDate(p.created_at)}</dd>
+      </dl>
+      <div class="bodytext">${esc(p.body || "")}</div>
+      ${p.link ? `<div class="actions" style="margin-top:14px">
+        <a class="btn btn-primary" href="${esc(p.link)}" target="_blank" rel="noopener">前往填寫 ↗</a></div>` : ""}
+      ${p.kind === "event" ? `
+        ${signupBlock(p)}
+        <div class="actions">${signupButton(p)}</div>
+        <div class="actions" style="margin-top:8px">${checkinButton(p)}</div>
+        ${MY_SIGNUPS.has(p.id) ? `<div class="myorder">你已報名這場活動。有事無法出席請記得<b>提前取消</b>，
+          位子可以讓給候補的同學。</div>` : ""}` : ""}
+      ${isOfficer() ? `<div class="block"><h4>幹部工具</h4>
+        <div class="actions">
+          <button class="btn btn-ghost btn-sm" onclick="alert('版型階段：正式版會列出報名名單與餐點統計')">報名名單</button>
+          <button class="btn btn-ghost btn-sm" onclick="alert('版型階段：正式版是現場報到台')">報到台</button>
+        </div></div>` : ""}
+    </article>`;
+}
+
+/* ── 同學名冊 ──────────────────────────────────────────────────── */
+function render_members(){
+  const q = M_FILTER.q.trim().toLowerCase();
+  const list = MEMBERS.filter(m => {
+    if(M_FILTER.group !== "all" && m.group !== M_FILTER.group) return false;
+    const p = profileOf(m.id);
+    if(M_FILTER.ind !== "all" && (!p || p.industry !== M_FILTER.ind)) return false;
+    if(!q) return true;
+    // 未登入時只能搜姓名 —— 搜得到公司就等於公司是公開的，那遮蔽就白做了
+    const hay = p ? [m.name, m.officer, p.company, p.title, p.edu_bg,
+                     INDUSTRIES[p.industry], groupName(m.group)]
+                  : [m.name, m.officer, groupName(m.group)];
+    return hay.join(" ").toLowerCase().includes(q);
+  }).sort((a,b) =>
+    // 先分組（sort 的百位就是組別），組內才排「組代 → 幹部 → 學號」。
+    // ⛔ 不能讓 rosterRank 蓋過組別：那會把三位組代一起拉到最上面，
+    //    三個組的分塊就散了，看的人找不到自己那組。
+    (Math.floor(a.sort / 100) - Math.floor(b.sort / 100))
+    || (rosterRank(a) - rosterRank(b))
+    || (officerRank(a) - officerRank(b))
+    || (a.sort - b.sort));
+
+  // 產業別篩選只在登入後出現（未登入根本看不到產業別）
+  const inds = ME ? [...new Set(MEMBERS.map(m => (profileOf(m.id)||{}).industry).filter(Boolean))]
+                    .sort((a,b) => Object.keys(INDUSTRIES).indexOf(a) - Object.keys(INDUSTRIES).indexOf(b)) : [];
+
+  el("v-members").innerHTML = `
+    <div class="sec"><h2>同學名冊</h2><span class="hint">${list.length} / ${MEMBERS.length} 位</span></div>
+    ${!ME ? `<div class="notice-lock">
+      名冊先開放<b>姓名</b>，方便同學進來對照認領自己。<br>
+      公司與職稱<b>已由新生名冊預設帶入</b>，登入後才看得到，之後也可以自己修改。</div>` : ""}
+    <div class="tools">
+      <div class="search">
+        <svg width="18" height="18" fill="none" stroke="var(--muted)"><use href="#i-search"/></svg>
+        <input id="mq" placeholder="${ME ? "搜尋姓名、公司、職稱、學歷…" : "搜尋姓名…"}" value="${esc(M_FILTER.q)}"
+          oninput="M_FILTER.q=this.value;render_members();el('mq').focus()">
+      </div>
+      <div class="chips">
+        <button class="chip${M_FILTER.group==="all"?" on":""}" onclick="M_FILTER.group='all';render_members()">全部 ${MEMBERS.length}</button>
+        ${Object.entries(GROUPS).map(([k,g]) =>
+          `<button class="chip${M_FILTER.group===k?" on":""}" onclick="M_FILTER.group='${k}';render_members()">
+            <span class="gdot" style="background:${g.color}"></span>${esc(g.short)} ${MEMBERS.filter(m=>m.group===k).length}</button>`).join("")}
+      </div>
+      ${inds.length ? `<div class="chips" style="margin-top:6px">
+        <button class="chip${M_FILTER.ind==="all"?" on":""}" onclick="M_FILTER.ind='all';render_members()">不分產業</button>
+        ${inds.map(k => `<button class="chip${M_FILTER.ind===k?" on":""}" onclick="M_FILTER.ind='${k}';render_members()">${esc(INDUSTRIES[k])}</button>`).join("")}
+      </div>` : ""}
+    </div>
+    ${!list.length ? `<div class="empty">沒有符合的同學</div>`
+      : M_FILTER.group !== "all"
+        ? `<div class="mgrid">${list.map(memberCard).join("")}</div>`
+        // 全部檢視時打上組別分隔 —— 不然「組代排最前面」這件事看起來只是亂排
+        : Object.keys(GROUPS).map(g => {
+            const ms = list.filter(m => m.group === g);
+            if(!ms.length) return "";
+            return `<div class="sec" style="margin-top:18px">
+                <h2 style="font-size:.9rem"><span class="gdot" style="background:${groupColor(g)}"></span>${esc(groupName(g))}組</h2>
+                <span class="hint">${ms.length} 位</span></div>
+              <div class="mgrid">${ms.map(memberCard).join("")}</div>`;
+          }).join("")}`;
+}
+function memberCard(m){
+  const co = seeVal(m, "company"), ti = seeVal(m, "title");
+  const ind = seeVal(m, "industry"), tag = seeVal(m, "tag"), head = seeVal(m, "headline");
+  const nick = seeVal(m, "nickname");
+  const anything = seesAnything(m);
+  return `<div class="mcard${m.status === "leave" ? " dim" : ""}" onclick="openMember(${m.id})">
+    ${m.officer ? `<div class="of">${esc(officerBadge(m))}</div>` : ""}
+    <div class="ava" style="background:${groupColor(m.group)}">${esc(initials(m.name))}</div>
+    <div class="n">${esc(m.name)}${nick ? `<span class="nick">${esc(nick)}</span>` : ""}</div>
+    ${co || ti ? `<div class="c">${esc(co || "")}${co && ti ? "<br>" : ""}${esc(ti || "")}</div>` : ""}
+    ${head ? `<div class="head">「${esc(head)}」</div>` : ""}
+    ${!anything ? `<div class="c locked">${LOCKED}</div>` : ""}
+    <div class="pills" style="justify-content:center;margin-top:7px">
+      ${tag ? `<span class="pill solid" style="background:${groupColor(m.group)}">${esc(tag)}</span>`
+        : ind ? `<span class="pill">${esc(INDUSTRIES[ind] || "")}</span>`
+        : `<span class="pill"><span class="gdot" style="background:${groupColor(m.group)}"></span>${esc((GROUPS[m.group]||{}).short||"")}</span>`}
+      ${statusPill(m)}
+    </div>
+  </div>`;
+}
+function openMember(id){ DETAIL = id; go("mdetail"); }
+function render_mdetail(){
+  const m = memberOf(DETAIL);
+  if(!m){ el("v-mdetail").innerHTML = `<div class="empty">找不到這位同學</div>`; return; }
+  const isMe = ME && ME.id === m.id;
+  const v = k => seeVal(m, k);
+  const co = v("company"), ti = v("title"), nick = v("nickname");
+  const anything = seesAnything(m);
+
+  // 一段一段長出來：本人沒填、或設定成看不到的，整段不出現。
+  // ⛔ 不要留「未填寫」的空殼 —— 50 個人的頁面全是空殼會讓人以為系統壞了。
+  const block = (key, title) => {
+    const val = v(key); if(!val) return "";
+    const f = FIELD[key];
+    return `<div class="block">
+      <h4>${esc(title || f.label)}${isMe ? visTag(m.id, key) : ""}</h4>
+      <div class="bodytext">${esc(val)}</div></div>`;
+  };
+  const topics = v("topics"), web = v("web");
+
+  el("v-mdetail").innerHTML = `
+    <div class="backbar"><button onclick="go('members')">
+      <svg width="18" height="18" fill="none" stroke="currentColor"><use href="#i-back"/></svg>返回名冊</button></div>
+    <article class="card pad detail">
+      <div style="display:flex;gap:14px;align-items:center">
+        <div class="ava lg" style="background:${groupColor(m.group)}">${esc(initials(m.name))}</div>
+        <div>
+          <h3>${esc(m.name)}${nick ? `<span style="font-size:.82rem;color:var(--muted);font-weight:500">（${esc(nick)}）</span>` : ""}</h3>
+          <div class="hint" style="margin-top:2px">${co || ti
+            ? `${esc(co || "")}　${esc(ti || "")}` : `<span class="locked">${LOCKED}</span>`}</div>
+          <div class="pills" style="margin-top:7px">
+            ${m.officer ? `<span class="pill solid" style="background:var(--c-orange)">${esc(m.officer)}</span>` : ""}
+            <span class="pill"><span class="gdot" style="background:${groupColor(m.group)}"></span>${esc(groupName(m.group))}</span>
+            ${v("industry") ? `<span class="pill">${esc(INDUSTRIES[v("industry")] || "")}</span>` : ""}
+            ${statusPill(m)}
+          </div>
+        </div>
+      </div>
+
+      ${v("headline") ? `<div class="headline">「${esc(v("headline"))}」</div>` : ""}
+
+      ${block("intro")}
+      ${block("resource")}
+      ${block("wish")}
+      ${topics ? `<div class="block"><h4>關注主題${isMe ? visTag(m.id,"topics") : ""}</h4>
+        <div class="pills">${topics.split(/[、,，]/).filter(Boolean)
+          .map(t => `<span class="pill">${esc(t.trim())}</span>`).join("")}</div></div>` : ""}
+      ${block("edu_bg")}
+      ${safeUrl(web) ? `<div class="block"><h4>網站${isMe ? visTag(m.id,"web") : ""}</h4>
+        <a href="${esc(safeUrl(web))}" target="_blank" rel="noopener"
+           style="color:var(--p-500);font-weight:700;word-break:break-all">${esc(web)} ↗</a></div>` : ""}
+
+      ${safeUrl(v("line_url")) ? `<div class="block">
+        <h4>LINE${isMe ? visTag(m.id,"line_url") : ""}</h4>
+        <div class="qrbox">
+          <div class="qrcell" onclick="openQR(${m.id})" title="點一下放大">
+            ${qrSVG(safeUrl(v("line_url")), 132)}
+            <span>點一下放大</span>
+          </div>
+          <div class="qrside">
+            <a class="btn btn-line" href="${esc(safeUrl(v("line_url")))}" target="_blank" rel="noopener">
+              加 ${esc(m.name)} 為 LINE 好友</a>
+            <div class="hint">在手機上直接點按鈕；當面加好友就掃左邊的 QR。</div>
+          </div>
+        </div>
+        ${isMe && !isLineUrl(v("line_url")) ? `<div class="hint" style="margin-top:6px">
+          ⚠️ 這看起來不像 LINE 的連結（正常是 line.me/ti/p/… 或 lin.ee/…），確認一下。</div>` : ""}
+      </div>` : ""}
+
+      ${["q_why","q_thesis","q_team"].some(k => v(k)) ? `<div class="qsec">
+        ${["q_why","q_thesis","q_team"].map(k => block(k)).join("")}</div>` : ""}
+
+      ${!anything ? `<div class="block"><h4>更多資料</h4>
+        <div class="notice-lock" style="margin:0">
+          這位同學的資料<b>設定成登入後才看得到</b>。<br>
+          名冊先讓大家對照認領自己，其餘由每個人自己決定給誰看。
+        </div>
+        <div class="actions" style="margin-top:12px">
+          <button class="btn btn-primary" onclick="onMe()">登入查看</button></div></div>`
+      : ME ? `<div class="block"><h4>聯絡方式</h4>
+          <div class="hint">電話與 Email 一律走後端驗身分才吐，不寫進網站檔案裡。
+            這一塊等接上 Supabase 才會有內容。</div></div>` : ""}
+
+      ${isMe ? `<div class="actions" style="margin-top:16px">
+        <button class="btn btn-primary" onclick="go('profile')">編輯我的資料</button></div>
+        <div class="hint" style="margin-top:8px">標籤上的
+          <span class="vistag">本屆同學</span> 是這一欄的公開範圍，只有你自己看得到這些標籤。</div>` : ""}
+    </article>`;
+}
+
+// 欄位旁邊的小標：這一欄現在給誰看。只有本人看得到。
+function visTag(id, key){
+  const k = fieldVis(id, key);
+  return ` <span class="vistag${k === "public" ? " open" : k === "private" ? " shut" : ""}">${VIS[k].label}</span>`;
+}
+
+/* ── 編輯我的資料 ────────────────────────────────────────────────
+   每一欄右邊都有「給誰看」的選單 —— 這是這一頁的重點，
+   不是附加功能。同學願意寫多少，取決於他能不能控制誰看得到。      */
+function render_profile(){
+  if(!ME){ el("v-profile").innerHTML = `<div class="empty">請先登入</div>`; return; }
+  const p = fullProfile(ME.id);
+  el("v-profile").innerHTML = `
+    <div class="backbar"><button onclick="go('me')">
+      <svg width="18" height="18" fill="none" stroke="currentColor"><use href="#i-back"/></svg>返回我的</button></div>
+    <div class="sec"><h2>編輯我的資料</h2></div>
+    <div class="notice-lock">
+      這些會顯示在<b>同學名冊</b>，是別人認識你的第一印象。<br>
+      公司、職稱、學歷<b>已從新生名冊帶入</b>，不對就直接改。<br>
+      每一欄右邊可以自己選<b>給誰看</b>，預設是「本屆同學」。
+    </div>
+    <div class="hint" style="margin:0 0 12px">
+      ⚠️ 版型階段：改動只存在這台瀏覽器，換一台電腦就不見了。
+      正式版會存進資料庫，並且只有你自己改得動自己那一列。
+    </div>
+    <article class="card pad">
+      <div class="field">
+        <label>姓名</label>
+        <input value="${esc(ME.name)}" disabled>
+        <div class="hint">姓名來自新生名冊，不開放自己改（名冊要對得起來）。
+          想讓大家叫你別的稱呼，填下面的「小名」。</div>
+      </div>
+      ${PROFILE_FIELDS.map(f => profileField(f, p)).join("")}
+    </article>
+    <div class="actions" style="margin-top:14px">
+      <button class="btn btn-primary" onclick="saveProfile()">儲存</button>
+      <button class="btn btn-ghost" onclick="go('members')">看名冊效果</button>
+    </div>
+    <div class="hint" style="margin-top:10px">
+      想知道別人看到什麼？儲存後到「我的 → 切換身分」選「未登入」，
+      再回名冊看自己的卡片。
+    </div>`;
+}
+function profileField(f, p){
+  const val = p[f.key] || "";
+  const vis = p.vis?.[f.key] || f.vis;
+  const input = f.type === "area"
+    ? `<textarea id="pf_${f.key}" rows="4">${esc(val)}</textarea>`
+    : f.type === "select"
+      ? `<select id="pf_${f.key}">${Object.entries(INDUSTRIES).map(([k,label]) =>
+          `<option value="${k}"${k === val ? " selected" : ""}>${esc(label)}</option>`).join("")}</select>`
+      : `<input id="pf_${f.key}" value="${esc(val)}">`;
+  return `<div class="field${f.key_field ? " key" : ""}">
+    <label>${esc(f.label)}${f.optional ? `<span class="opt">選填</span>` : ""}
+      <select class="vissel" id="pv_${f.key}">
+        ${Object.entries(VIS).map(([k, o]) =>
+          `<option value="${k}"${k === vis ? " selected" : ""}>${esc(o.label)}</option>`).join("")}
+      </select>
+    </label>
+    ${input}
+    ${f.hint ? `<div class="hint">${esc(f.hint)}</div>` : ""}
+    ${f.line_help ? lineHelpHTML() : ""}
+  </div>`;
+}
+/* LINE 連結怎麼拿 —— 這是最多人會卡住的一步，說明要具體到「點哪裡」。
+   收在 <details> 裡，不然表單會被一大段步驟撐開。 */
+function lineHelpHTML(){
+  return `<details class="howto">
+    <summary>怎麼找到我的 LINE 連結？</summary>
+    <div class="howtobody">
+      <b>一般個人帳號</b>
+      <ol>
+        <li>打開 LINE，切到左下角<b>「主頁」</b></li>
+        <li>點右上角的<b>加入好友圖示</b>（人形加號）</li>
+        <li>選<b>「邀請」</b>→<b>「複製連結」</b><br>
+          （或選「行動條碼」→ 切到「我的 QR code」→ 點分享 → 複製連結）</li>
+        <li>回到這裡貼上，會長得像 <code>https://line.me/ti/p/xxxxxxxx</code></li>
+      </ol>
+      <b>LINE 官方帳號（有做生意的可以用這個）</b>
+      <ol>
+        <li>登入 <b>LINE Official Account Manager</b></li>
+        <li>左側<b>「增加好友人數」→「建立加入好友網址」</b></li>
+        <li>複製那串 <code>https://lin.ee/xxxxx</code></li>
+      </ol>
+      <div class="notice-lock" style="margin:10px 0 0">
+        ⚠️ 這一欄的公開範圍<b>預設是「本屆同學」</b>。<br>
+        如果改成「公開」，等於任何在網路上看到這一頁的人都能加你 ——
+        除非你用的是官方帳號，否則不建議。
+      </div>
+    </div>
+  </details>`;
+}
+
+function saveProfile(){
+  const all = loadEdits();
+  const mine = all[ME.id] || { vis:{} };
+  mine.vis = mine.vis || {};
+  PROFILE_FIELDS.forEach(f => {
+    const i = el("pf_" + f.key), s = el("pv_" + f.key);
+    if(i) mine[f.key] = (i.value || "").trim();
+    if(s) mine.vis[f.key] = s.value;
+  });
+  all[ME.id] = mine;
+  saveEdits(all);
+  alert("已儲存。\n（版型階段只存在這台瀏覽器）");
+  openMember(ME.id);   // 直接跳去看效果，比回設定頁有感
+}
+
+/* ── 資源交流 ──────────────────────────────────────────────────── */
+function render_needs(){
+  const list = NEEDS.filter(n => NEED_TAB === "all" ? true : NEED_TAB === "open" ? !n.done : n.done);
+  el("v-needs").innerHTML = `
+    <div class="sec"><h2>資源交流</h2>
+      ${ME ? `<button class="more" onclick="alert('版型階段：正式版可在這裡提需求')">＋ 我要提</button>` : ""}</div>
+    <div class="tools"><div class="chips">
+      ${[["open","進行中"],["done","已解決"],["all","全部"]].map(([k,l]) =>
+        `<button class="chip${NEED_TAB===k?" on":""}" onclick="NEED_TAB='${k}';render('needs')">${l}</button>`).join("")}
+    </div></div>
+    <div class="hint" style="margin-bottom:10px">同學之間互相提需求、互相接。
+      一個班最值錢的就是這些跨行業的連結。</div>
+    ${list.length ? list.map(needRow).join("")
+      : emptyBox("還沒有人提需求",
+          "這班橫跨開發、營造、建築、估價、地政、公部門、工程顧問、室內裝修、資訊、能源 —— 十幾個行業。有需求就開一則，有人接了就標記解決，看板上會留下誰接住的紀錄。比在 LINE 群裡問有效，因為 LINE 訊息會被洗掉。")}`;
+}
+function needRow(n){
+  return `<article class="card pad" onclick="openNeed(${n.id})" style="cursor:pointer">
+    <div class="pills" style="margin-bottom:6px">
+      ${n.done ? `<span class="pill ok">已解決</span>` : `<span class="pill solid" style="background:var(--c-green)">徵求中</span>`}
+    </div>
+    <b>${esc(n.title)}</b>
+    <div class="hint">${esc(nameOf(n.author_id))}　${twDate(n.created_at)}</div>
+  </article>`;
+}
+function openNeed(id){ DETAIL = id; go("ndetail"); }
+function render_ndetail(){
+  const n = NEEDS.find(x => x.id === DETAIL);
+  if(!n){ el("v-ndetail").innerHTML = `<div class="empty">找不到</div>`; return; }
+  const author = memberOf(n.author_id);
+  el("v-ndetail").innerHTML = `
+    <div class="backbar"><button onclick="go('needs')">
+      <svg width="18" height="18" fill="none" stroke="currentColor"><use href="#i-back"/></svg>返回</button></div>
+    <article class="card pad detail">
+      <div class="pills" style="margin-bottom:8px">
+        ${n.done ? `<span class="pill ok">已解決</span>` : `<span class="pill solid" style="background:var(--c-green)">徵求中</span>`}
+      </div>
+      <h3>${esc(n.title)}</h3>
+      <div class="bodytext">${esc(n.body)}</div>
+      <div class="block"><h4>提出者</h4>
+        <div class="mcard" style="max-width:180px;text-align:left;display:flex;gap:10px;align-items:center"
+             onclick="openMember(${n.author_id})">
+          <div class="ava" style="width:40px;height:40px;font-size:.9rem;margin:0;background:${groupColor(author?.group)}">
+            ${esc(initials(author?.name))}</div>
+          <div><div class="n" style="font-size:.9rem">${esc(author?.name)}</div>
+            <div class="c">${esc(author?.company || "")}</div></div>
+        </div></div>
+      ${n.done && n.helpers?.length ? `<div class="block"><h4>誰接住的</h4>
+        <div class="pills">${n.helpers.map(h => `<span class="pill">${esc(nameOf(h))}</span>`).join("")}</div></div>` : ""}
+      ${ME && !n.done ? `<div class="actions" style="margin-top:14px">
+        <button class="btn btn-primary" onclick="alert('版型階段：正式版會通知提出者')">我可以幫忙</button></div>` : ""}
+    </article>`;
+}
+
+/* ── 相簿 ──────────────────────────────────────────────────────── */
+function render_album(){
+  el("v-album").innerHTML = `
+    <div class="sec"><h2>班級相簿</h2>
+      ${isOfficer() ? `<button class="more" onclick="alert('版型階段：正式版可建立相簿')">＋ 建立</button>` : ""}</div>
+    ${!ALBUMS.length ? emptyBox("還沒有相簿",
+        "聚餐、參訪、開學典禮的照片可以建成一本一本的相簿。正式版照片走 Supabase Storage，上傳前會先壓縮 —— 手機直出一張 5MB，一次聚會就吃光免費額度。") : ""}
+    <div class="agrid">${ALBUMS.map(a => `
+      <div class="acard" onclick="${a.count ? `openLightbox('${escAttr(a.cover)}')` : `alert('這本相簿還沒有照片')`}">
+        <img src="${esc(a.cover)}" alt="">
+        <div class="cap">${esc(a.title)}<span>${esc(a.date)}　${a.count} 張</span></div>
+      </div>`).join("")}</div>
+    <div class="hint" style="margin-top:12px">版型階段用示意圖。正式版：照片上傳走 Supabase Storage，
+      壓縮後再上傳（手機直出的照片一張 5MB，一次聚會就會把免費額度吃光）。</div>`;
+}
+
+/* ── 我的 ──────────────────────────────────────────────────────── */
+function render_me(){
+  const mine = ME ? POSTS.filter(p => MY_SIGNUPS.has(p.id)) : [];
+  el("v-me").innerHTML = `
+    <div class="sec"><h2>我的</h2></div>
+    ${ME ? `
+      <article class="card pad">
+        <div style="display:flex;gap:14px;align-items:center">
+          <div class="ava lg" style="background:${groupColor(ME.group)}">${esc(initials(ME.name))}</div>
+          <div><h3 style="font-size:1.15rem;font-weight:800">${esc(ME.name)}</h3>
+            <div class="hint">${(() => { const p = profileOf(ME.id);
+              return p ? `${esc(p.company)}　${esc(p.title)}` : ""; })()}</div>
+            <div class="pills" style="margin-top:6px">
+              ${ME.officer ? `<span class="pill solid" style="background:var(--c-orange)">${esc(ME.officer)}</span>` : ""}
+              <span class="pill">${esc(groupName(ME.group))}</span></div>
+          </div>
+        </div>
+        <div class="actions" style="margin-top:14px">
+          <button class="btn btn-primary btn-sm" onclick="go('profile')">編輯我的資料</button>
+          <button class="btn btn-ghost btn-sm" onclick="openMember(${ME.id})">看我的頁面</button>
+          <button class="btn btn-ghost btn-sm" onclick="logout()">登出</button>
+        </div>
+      </article>
+      <div class="sec"><h2>我報名的活動</h2></div>
+      ${mine.length ? mine.map(eventCard).join("") : `<div class="empty">還沒有報名任何活動</div>`}
+    ` : `
+      <article class="card pad" style="text-align:center">
+        <div style="font-size:2rem">🔐</div>
+        <b style="display:block;margin-top:8px">登入後才能報名活動、看聯絡方式</b>
+        <div class="hint" style="margin-top:6px">正式版走 LINE 登入，第一次登入要從名冊認領自己的身分。</div>
+        <div class="actions" style="margin-top:14px"><button class="btn btn-primary" onclick="onMe()">登入</button></div>
+      </article>`}
+
+    <div class="sec"><h2>主視覺風格</h2></div>
+    <article class="card pad">
+      <div class="hint" style="margin-bottom:10px">版型階段的選項。決定後我把 <code>HERO_DEFAULT</code> 改掉、
+        其餘幾張圖刪掉就好。</div>
+      <div class="chips" style="flex-wrap:wrap">
+        ${Object.entries(HEROES).map(([k,h]) =>
+          `<button class="chip${heroKey()===k?" on":""}" onclick="setHero('${k}')">${esc(h.label)}</button>`).join("")}
+      </div>
+      <div class="hint" style="margin-top:8px">${esc(HEROES[heroKey()].note)}</div>
+      <div class="hint" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line-soft)">
+        校園照片來自 Wikimedia Commons，授權 CC BY-SA 3.0 ——
+        使用時必須標示作者與授權，出處寫在<b>使用說明</b>頁最下面。</div>
+    </article>
+
+    <div class="sec"><h2>版型測試：切換身分</h2></div>
+    <article class="card pad">
+      <div class="hint" style="margin-bottom:10px">正式版沒有這一塊。這裡是讓你檢查
+        「未登入／一般同學／幹部」三種身分看到的畫面差異。</div>
+      <div class="chips" style="flex-wrap:wrap">
+        <button class="chip${!ME?" on":""}" onclick="loginAs(null)">未登入</button>
+        <button class="chip${ME&&!ME.officer?" on":""}" onclick="loginAs(5)">一般同學</button>
+        <button class="chip${ME&&ME.officer?" on":""}" onclick="loginAs(23)">幹部（班代）</button>
+      </div>
+    </article>`;
+}
+
+/* ── 班級管理（幹部）──────────────────────────────────────────── */
+function render_admin(){
+  const byGroup = {};
+  MEMBERS.forEach(m => (byGroup[m.group] ??= []).push(m));
+  el("v-admin").innerHTML = `
+    <div class="sec"><h2>班級管理</h2></div>
+    ${!isOfficer() ? `<div class="empty">這一頁只有幹部看得到。<br>
+      到「我的 → 切換身分」選幹部就能預覽。</div>` : `
+    <article class="card pad">
+      <h4 style="font-size:.86rem;color:var(--muted);letter-spacing:.5px;margin-bottom:8px">班級概況</h4>
+      <dl class="kv">
+        <dt>同學人數</dt><dd>${MEMBERS.length} 位（在學 ${CLASS_INFO.active} 位）</dd>
+        <dt>幹部</dt><dd>${MEMBERS.filter(m=>m.officer).sort((a,b)=>officerRank(a)-officerRank(b))
+          .map(m=>`<span class="pill" style="margin:2px 3px 2px 0">${esc(m.officer)}：${esc(m.name)}</span>`).join("")}</dd>
+        <dt>組別分布</dt><dd>${Object.entries(byGroup).map(([g,ms]) =>
+          `<span class="pill" style="margin:2px 3px 2px 0"><span class="gdot" style="background:${groupColor(g)}"></span>${esc(groupName(g))} ${ms.length}</span>`).join("")}</dd>
+      </dl>
+    </article>
+    <div class="sec"><h2>管理工具</h2></div>
+    ${[
+      ["👥 同學管理", "審核新申請、解除綁定、標記退出。刪除只給重複的空帳號用。"],
+      ["📋 報名名單", "每場活動的報名者、餐點統計、飲食禁忌，可匯出 CSV。"],
+      ["📍 現場報到台", "產生報到碼、即時看誰到了、補登、記錄未到原因。"],
+      ["💰 班費與收款", "收款登記只有財務長勾得動；流水帳只增不改，對帳吵起來看這裡。"],
+      ["📢 發布內容", "公告、問卷、活動。可先存成草稿只給幹部看，定案再公開。"]
+    ].map(([t, d]) => `<article class="card pad" onclick="alert('版型階段：這是正式版的功能位置')" style="cursor:pointer">
+        <b>${t}</b><div class="hint">${d}</div></article>`).join("")}`}`;
+}
+
+/* ── 重要行事曆 ────────────────────────────────────────────────────
+   資料在 school.js（逢甲 115 學年度行事曆）。
+   ⚠️ 一定要標出處與「以註冊課務組公告為準」——
+      學校會改行事曆，同學若把這裡當唯一依據而錯過退選，那是我們的錯。 */
+let CAL_TERM = "115-1";
+const rocDate = iso => {                       // 西元 → 民國顯示
+  const d = new Date(iso + "T00:00:00+08:00");
+  return `${d.getFullYear() - 1911}/${d.getMonth() + 1}/${d.getDate()}`;
+};
+const calWeekday = iso =>
+  WD[new Date(iso + "T00:00:00+08:00").getDay()];
+
+let CAL_TAB = "class";     // class 停課日 / admin 行政日程
+
+function render_calendar(){
+  const today = twDate(new Date());
+  const sched = CLASS_SCHEDULE;
+  // 下一個「不上課」的日子 —— 在職專班最常被問的就是這個
+  const nextOff = sched.rows.filter(r => !r.teach)
+    .map(r => ({ ...r, d: r.dates.find(d => d >= today) || r.dates[r.dates.length - 1] }))
+    .filter(r => r.d >= today)[0];
+  const nextAdmin = ACADEMIC_CALENDAR.find(e => e.date >= today);
+  const days = d => Math.round((new Date(d) - new Date(today)) / 86400000);
+
+  el("v-calendar").innerHTML = `
+    <div class="sec"><h2>重要行事曆</h2></div>
+
+    ${nextOff ? `<article class="card bigcard">
+      <div class="band">
+        <div class="kicker">下一個不上課的日子</div>
+        <div class="t">${esc(nextOff.week)}　${nextOff.dates.map(d => d.slice(5).replace("-", "/")).join("、")}</div>
+      </div>
+      <div class="body">
+        <ul class="offlist">${nextOff.items.map(t => `<li>${esc(t)}</li>`).join("")}</ul>
+        <div class="seatline">還有 <b>${days(nextOff.d)}</b> 天</div>
+      </div>
+    </article>` : ""}
+
+    <div class="tools" style="margin-top:16px"><div class="chips">
+      <button class="chip${CAL_TAB==="class"?" on":""}" onclick="CAL_TAB='class';render('calendar')">上課與放假</button>
+      <button class="chip${CAL_TAB==="admin"?" on":""}" onclick="CAL_TAB='admin';render('calendar')">行政日程</button>
+    </div></div>
+
+    ${CAL_TAB === "class" ? classScheduleHTML(today) : adminCalendarHTML(today, nextAdmin)}`;
+}
+
+/* 學程公告的休假表：一列一個日期區間，右邊直接標「上課／不上課」 */
+function classScheduleHTML(today){
+  const s = CLASS_SCHEDULE;
+  return `
+    <div class="hint" style="margin-bottom:10px">
+      學程公告　115 學年度第 1 學期休假及重要活動日期</div>
+    <article class="card">
+      ${s.rows.map(r => {
+        const past = r.dates[r.dates.length - 1] < today;
+        return `<div class="calrow${past ? " past" : ""}">
+          <div class="caldate wide">
+            ${r.dates.map(d => `<b>${d.slice(5).replace("-", "/")}</b>`).join("")}
+            <span>${esc(r.week)}</span>
+          </div>
+          <div class="calbody">
+            <ul class="offlist">${r.items.map(t => `<li>${esc(t)}</li>`).join("")}</ul>
+          </div>
+          <span class="pill solid" style="align-self:flex-start;background:${
+            r.teach ? "var(--ok)" : "var(--c-red)"}">${r.teach ? "上課" : "不上課"}</span>
+        </div>`;
+      }).join("")}
+    </article>
+
+    <article class="card pad" style="margin-top:12px">
+      <h4 style="font-size:.86rem;color:var(--muted);letter-spacing:.5px;margin-bottom:6px">備註</h4>
+      <ul class="offlist">${s.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>
+      <div class="notice-lock" style="margin:12px 0 0">⚠️ ${esc(s.caveat)}</div>
+      <div class="hint" style="margin-top:8px">
+        第 2 學期（115-2）的休假表學程還沒公告，公告後補上。
+      </div>
+    </article>`;
+}
+
+/* 學校行事曆：選課、繳費、成績、學位這些行政期限 */
+function adminCalendarHTML(today, next){
+  const list = ACADEMIC_CALENDAR.filter(e => e.term === CAL_TERM);
+  return `
+    <div class="tools"><div class="chips">
+      ${Object.entries(TERMS).map(([k,t]) =>
+        `<button class="chip${CAL_TERM===k?" on":""}" onclick="CAL_TERM='${k}';render('calendar')">${esc(t.name)}</button>`).join("")}
+    </div></div>
+    <div class="hint" style="margin-bottom:10px">${esc(TERMS[CAL_TERM].range)}
+      　行事曆原文為民國紀年，這裡一律換算成西元顯示。</div>
+
+    <article class="card">
+      ${list.map(e => {
+        const k = CAL_KIND[e.kind] || {};
+        const past = e.date < today;
+        const isNext = next && e.date === next.date && e.text === next.text;
+        return `<div class="calrow${past ? " past" : ""}${isNext ? " next" : ""}">
+          <div class="caldate"><b>${e.date.slice(5).replace("-", "/")}</b>
+            <span>${calWeekday(e.date)}</span></div>
+          <div class="calbody">
+            <div class="caltext">${e.big ? `<b>${esc(e.text)}</b>` : esc(e.text)}</div>
+            ${e.detail ? `<div class="hint">${esc(e.detail)}</div>` : ""}
+          </div>
+          <span class="pill solid" style="background:${k.color};align-self:flex-start">${esc(k.label || "")}</span>
+        </div>`;
+      }).join("")}
+    </article>
+
+    <article class="card pad" style="margin-top:12px">
+      <div class="hint">
+        資料來源：<b>${esc(CALENDAR_SOURCE.title)}</b>（${esc(CALENDAR_SOURCE.note)}）<br>
+        大學部的統籌科目集中會考、學士畢業班隨堂考不列在這裡 —— 在職專班不適用。
+      </div>
+      <div class="actions" style="margin-top:10px">
+        <a class="btn btn-ghost btn-sm" href="${CALENDAR_SOURCE.url}" target="_blank" rel="noopener">註冊課務組行事曆 ↗</a>
+      </div>
+    </article>`;
+}
+
+/* ── 重要課程資訊 ────────────────────────────────────────────────── */
+function render_courses(){
+  const c = COURSE_INFO;
+  el("v-courses").innerHTML = `
+    <div class="sec"><h2>重要課程資訊</h2></div>
+
+    <article class="card bigcard">
+      <div class="band">
+        <div class="kicker">畢業門檻</div>
+        <div class="t">${c.credits.total} 學分</div>
+      </div>
+      <div class="body">
+        <div class="creditbar">
+          <div class="cseg req" style="flex:${c.credits.required}">
+            <b>${c.credits.required}</b><span>必修</span></div>
+          <div class="cseg ele" style="flex:${c.credits.elective}">
+            <b>${c.credits.elective}</b><span>選修</span></div>
+        </div>
+        <div class="hint" style="margin-top:10px">${esc(c.summary)}</div>
+      </div>
+    </article>
+
+    <div class="sec"><h2>課程結構</h2></div>
+    <article class="card pad">
+      <div class="block" style="margin-top:0;padding-top:0;border:none">
+        <h4>${esc(c.required.title)}</h4><div class="bodytext">${esc(c.required.body)}</div></div>
+      <div class="block"><h4>${esc(c.common.title)}</h4><div class="bodytext">${esc(c.common.body)}</div></div>
+    </article>
+
+    <div class="sec"><h2>三組課程方向</h2></div>
+    ${Object.entries(GROUPS).map(([k,g]) => `
+      <article class="card pad">
+        <div class="pills" style="margin-bottom:6px">
+          <span class="pill solid" style="background:${g.color}">${esc(g.name)}組</span>
+          <span class="pill">${MEMBERS.filter(m => m.group === k).length} 位同學</span>
+        </div>
+        <div class="bodytext" style="margin-top:4px">${esc(c.groups[k] || "")}</div>
+      </article>`).join("")}
+
+    <div class="sec"><h2>學程教育目標</h2></div>
+    <article class="card pad"><ol class="numlist">
+      ${c.goals.map(g => `<li>${esc(g)}</li>`).join("")}</ol></article>
+
+    <div class="sec"><h2>核心能力</h2></div>
+    <article class="card pad"><ol class="numlist">
+      ${c.abilities.map(a => `<li>${esc(a)}</li>`).join("")}</ol></article>
+
+    <div class="sec"><h2>查課程</h2></div>
+    <article class="card pad">
+      <div class="hint" style="margin-bottom:10px">
+        課程查詢系統沒辦法做成直達連結（它的網址帶一個會過期的憑證，
+        選完條件網址也不會變）。<b>照下面這樣選就對了</b>：</div>
+      <div class="hint" style="margin-bottom:8px">分頁選「${esc(c.search.tab)}」</div>
+      <div class="qfields">
+        ${c.search.fields.map(f => `<div class="qf${f.key ? " key" : ""}">
+          <span class="l">${esc(f.label)}</span><b>${esc(f.value)}</b></div>`).join("")}
+      </div>
+      <div class="actions" style="margin-top:14px">
+        <a class="btn btn-primary" href="${esc(c.search.url)}" target="_blank" rel="noopener">開啟課程查詢系統 ↗</a>
+      </div>
+    </article>
+
+    <div class="sec"><h2>常用系統</h2></div>
+    <article class="card">
+      ${c.links.map(l => `<a class="linkrow" href="${esc(l.url)}" target="_blank" rel="noopener">
+        <span>${esc(l.label)}</span><span class="go">↗</span></a>`).join("")}
+    </article>
+
+    <div class="hint" style="margin-top:12px">
+      資料整理自學程官網「碩士專業」頁（2026-08-29）。
+      實際修業規定以學程辦公室與課程查詢系統公告為準。</div>`;
+}
+
+/* ── 使用說明 ──────────────────────────────────────────────────── */
+function render_help(){
+  el("v-help").innerHTML = `
+    <div class="sec"><h2>使用說明</h2></div>
+    <article class="card pad helpdoc">
+      <h3>1　這是什麼</h3>
+      <p style="font-size:.93rem">逢甲大學建設碩士在職學位學程第十屆的班級看板。
+        公告、活動報名、同學名冊、資源交流都在這裡，不用在 LINE 群裡往上翻。</p>
+
+      <h3>2　要不要登入</h3>
+      <table>
+        <tr><th>不用登入</th><th>要登入</th></tr>
+        <tr>
+          <td>同學名冊、公告、活動、相簿的<b>內容</b>；已報名<b>人數</b></td>
+          <td>報名活動、現場報到、看聯絡方式、提資源需求</td>
+        </tr>
+      </table>
+      <p style="font-size:.9rem;margin-top:8px">⛔ 不外流：電話、Email、LINE 帳號 ID、報到定位。</p>
+
+      <h3>3　活動報名</h3>
+      <ul>
+        <li>首頁會固定顯示<b>下一場</b>，直接在那裡報名</li>
+        <li>額滿可以登記候補；有人取消會自動遞補</li>
+        <li><b>不能去一定要提前取消</b> —— 位子讓給候補的同學，聚餐的桌數也要算</li>
+        <li>報到按鈕平常是灰的，<b>活動當天</b>才會亮</li>
+      </ul>
+
+      <h3>4　資源交流怎麼用</h3>
+      <p style="font-size:.93rem">這一班橫跨開發、營造、建築、公部門、金融、法務、資訊。
+        有需求就直接提，比在群組裡問有效。解決了記得標「已解決」，
+        看板上會留下誰接住的紀錄。</p>
+
+      <h3>5　圖片出處</h3>
+      <p style="font-size:.93rem">校園照片取自 Wikimedia Commons，授權
+        <b>CC BY-SA 3.0</b>（人言大樓、丘逢甲紀念館：攝影者 SSR2000；校園空拍：Flickr，CC BY 2.0）。
+        依授權條款必須標示作者與授權方式，所以這一段請不要刪掉。</p>
+
+      <h3>6　出事的時候</h3>
+      <ul>
+        <li><b>有人說「沒改到」</b>：先看頁尾的版本時間，對得上就是他要重新整理</li>
+        <li><b>畫面空白</b>：先重新整理一次；持續發生再找管理的同學</li>
+      </ul>
+    </article>`;
+}
+
+/* ── 導覽 ──────────────────────────────────────────────────────── */
+const VIEWS = ["home","notices","acts","calendar","courses","members","mdetail","profile","needs","ndetail","album","pdetail","me","admin","help"];
+const NAV_TITLES = { home:"首頁", notices:"公告", acts:"活動",
+  calendar:"重要行事曆", courses:"重要課程資訊", members:"同學名冊",
+  needs:"資源交流", album:"相簿", me:"我的", admin:"班級管理", help:"使用說明" };
+
+function render(v){
+  const fn = window["render_" + v];
+  if(fn) fn();
+}
+function go(v){
+  if(!VIEWS.includes(v)) v = "home";
+  VIEW = v;
+  VIEWS.forEach(x => el("v-" + x).classList.toggle("on", x === v));
+  // 詳細頁沒有自己的 nav 按鈕，就讓它的來源頁保持亮著
+  const navFor = { mdetail:"members", ndetail:"needs", pdetail:"acts", profile:"me" }[v] || v;
+  document.querySelectorAll(".nav button").forEach(b => b.classList.toggle("on", b.dataset.v === navFor));
+  render(v);
+  paintDrawer();
+  window.scrollTo(0, 0);
+  closeDrawer();
+}
+document.querySelectorAll(".nav button").forEach(b => b.onclick = () => go(b.dataset.v));
+
+function paintDrawer(){
+  el("drawerlist").innerHTML = Object.entries(NAV_TITLES).map(([v, t]) => {
+    if(v === "admin" && !isOfficer()) return "";
+    return `<a class="di${VIEW===v?" on":""}" onclick="go('${v}')">${t}</a>`;
+  }).join("") + `<div class="dgroup">學程</div>
+    <a class="di" href="${CLASS_INFO.site}" target="_blank" rel="noopener">學程官網 ↗</a>`;
+}
+function openDrawer(){ el("drawer").classList.add("on"); el("scrim").classList.add("on"); }
+function closeDrawer(){ el("drawer").classList.remove("on"); el("scrim").classList.remove("on"); }
+function openLightbox(url){ el("lightimg").src = url; el("lightbox").classList.add("on"); }
+/* QR 放大：當面加好友時要讓對方掃得到，小小一格掃不動 */
+function openQR(id){
+  const m = memberOf(id), u = safeUrl(fullProfile(id).line_url);
+  if(!u) return;
+  el("qrbig").innerHTML = `${qrSVG(u, 260)}
+    <div class="qrname">${esc(m.name)}</div>
+    <div class="qrhint">用 LINE 的「行動條碼」掃這張</div>`;
+  el("qrmodal").classList.add("on");
+}
+function closeQR(){ el("qrmodal").classList.remove("on"); }
+function closeLightbox(){ el("lightbox").classList.remove("on"); }
+
+/* ── 登入（版型階段是假的）────────────────────────────────────────
+   正式版：LINE Login → Edge Function 換 token → localStorage
+   第一次登入要「認領身分」：從名冊挑自己是誰，幹部核可後綁定。   */
+function onMe(){
+  if(ME) go("me");
+  else { alert("版型階段：正式版按這裡會跳 LINE 登入。\n先到「我的」頁面用「切換身分」預覽。"); go("me"); }
+}
+function loginAs(id){
+  ME = id ? memberOf(id) : null;
+  MY_MOCK_SIGNUPS = id ? [{ post_id:101, status:"ok" }] : [];
+  reload().then(() => { paintMe(); render(VIEW); });
+}
+function logout(){ loginAs(null); }
+function paintMe(){
+  el("meName").textContent = ME ? ME.name : "登入";
+  el("meBtn").classList.toggle("in", !!ME);
+  el("nav-admin").style.display = isOfficer() ? "" : "none";
+  paintDrawer();
+}
+
+/* ── 啟動 ──────────────────────────────────────────────────────── */
+async function reload(){
+  [MEMBERS, POSTS, NEEDS, ALBUMS, SEATS, MY_SIGNUPS] = await Promise.all([
+    db.members(), db.posts(), db.needs(), db.albums(), db.seats(), db.mySignups()
+  ]);
+}
+(async function boot(){
+  el("verline").textContent = VERSION;
+  await reload();
+  paintMe();
+  go("home");
+})();

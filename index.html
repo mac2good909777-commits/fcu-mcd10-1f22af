@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>逢甲大學建設碩士在職學位學程｜第十屆同學看板</title>
+<meta name="theme-color" content="#7D212A">
+<link rel="apple-touch-icon" href="assets/mcd-logo.png">
+<meta name="apple-mobile-web-app-title" content="建設碩士在職學位學程">
+<style>
+/* ── 配色 ────────────────────────────────────────────────────────
+   主色＝逢甲大學校色深紅 #7D212A（2026-08-29 取自 fcu.edu.tw 官網，
+   全站用了 58 次的主導色；輔色 #AA2D39、#B7505F 也是官網既有的）。
+
+   三個組的分類色改取學程 logo（那個彩色積木大樓）的紫／藍／綠 ——
+   跟校色深紅拉得開，一眼分得出組別。
+   橘 #F39800 只留給「要按下去的東西」與幹部標記，是全站唯一的醒目色。
+
+   ⛔ 不要自己另外配色。深紅是學校的、積木色是學程的，
+      換掉就沒有辨識度了。                                          */
+:root{
+  --p-900:#5C1720; --p-700:#7D212A; --p-500:#AA2D39; --p-300:#B7505F;
+  --c-sky:#05B5ED; --c-orange:#F39800; --c-yellow:#FFF100;
+  --c-purple:#601986; --c-green:#93C529; --c-red:#D01027;
+
+  --bg:#f7f2f3; --card:#ffffff; --text:#1e1719; --muted:#6b5c5f;
+  --line:#ece3e4; --line-soft:#f5eeef;
+  --chip:#f7ecee; --chip-text:#7D212A;
+  --ok:#1a7f4b; --warn:#b4531a;
+  --r:14px; --r-sm:10px;
+  --shadow:0 1px 2px rgba(45,20,24,.05), 0 4px 14px rgba(45,20,24,.07);
+  --nav-h:60px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:'PingFang TC','Noto Sans TC','Microsoft JhengHei',system-ui,sans-serif;
+  background:var(--bg); color:var(--text); font-size:16px; line-height:1.6;
+  padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));
+}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:inherit;text-decoration:none}
+img{max-width:100%}
+
+/* ── 頂欄 ───────────────────────────── */
+.top{
+  position:sticky;top:0;z-index:50;
+  background:linear-gradient(135deg,var(--p-900) 0%,var(--p-700) 55%,var(--p-500) 100%);
+  color:#fff; padding:10px 16px; padding-top:calc(10px + env(safe-area-inset-top));
+  display:flex;align-items:center;gap:11px;
+}
+.top .burger{background:none;border:none;color:#fff;padding:6px;margin:-6px;cursor:pointer;display:flex}
+.top .logo{width:36px;height:36px;border-radius:9px;flex:none;object-fit:contain;background:#fff;padding:3px}
+.top h1{font-size:.88rem;font-weight:800;letter-spacing:.2px;line-height:1.3}
+.top .sub{font-size:.7rem;opacity:.85;font-weight:400}
+.top .me{margin-left:auto;display:flex;align-items:center;gap:7px;background:#ffffff26;
+  padding:6px 11px;border-radius:999px;font-size:.8rem;font-weight:600;min-height:36px;border:none;cursor:pointer;color:#fff}
+.top .me .dot{width:7px;height:7px;border-radius:50%;background:#9aa4b2}
+.top .me.in .dot{background:#5fe0a0}
+
+.wrap{max-width:760px;margin:0 auto;padding:14px 14px 26px}
+.view{display:none} .view.on{display:block}
+
+/* ── 主視覺 ─────────────────────────── */
+.hero{position:relative;margin:-14px -14px 16px;height:210px;overflow:hidden;
+  display:flex;align-items:flex-end}
+.hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+/* 深紅 duotone：照片壓成校色，才不會每張照片各自為政 */
+.hero .tint{position:absolute;inset:0;
+  background:linear-gradient(160deg,rgba(92,23,32,.88),rgba(125,33,42,.62) 52%,rgba(170,45,57,.42))}
+.hero .txt{position:relative;padding:16px;color:#fff;text-shadow:0 1px 12px rgba(0,0,0,.35)}
+.hero .kicker{font-size:.72rem;letter-spacing:2.5px;font-weight:700;opacity:.9}
+.hero h2{font-size:1.5rem;font-weight:800;line-height:1.3;margin-top:4px}
+.hero .line{font-size:.82rem;opacity:.92;margin-top:5px}
+.hero .blocks{position:absolute;right:12px;top:12px;display:flex;gap:3px}
+.hero .blocks i{width:9px;height:9px;border-radius:2px;display:block}
+
+/* ── 區塊標題 ───────────────────────── */
+.sec{display:flex;align-items:baseline;gap:9px;margin:22px 2px 10px}
+.sec:first-child{margin-top:4px}
+.sec h2{font-size:1.0rem;font-weight:800;letter-spacing:.3px}
+.sec .more{margin-left:auto;font-size:.82rem;color:var(--p-500);font-weight:600;
+  background:none;border:none;cursor:pointer;min-height:38px}
+
+/* ── 卡片 ───────────────────────────── */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:var(--shadow);overflow:hidden}
+.card + .card{margin-top:10px}
+.card.pad{padding:14px 16px}
+.bigcard .band{background:linear-gradient(135deg,var(--p-900),var(--p-500));color:#fff;padding:14px 16px}
+.bigcard .band .kicker{font-size:.7rem;opacity:.85;letter-spacing:1.5px;font-weight:700}
+.bigcard .band .t{font-size:1.15rem;font-weight:800;margin-top:3px;line-height:1.4}
+.bigcard .body{padding:14px 16px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.86rem;color:var(--muted)}
+.meta b{color:var(--text);font-weight:600}
+.actions{display:flex;gap:8px;margin-top:13px}
+.btn{flex:1;min-height:46px;border:none;border-radius:var(--r-sm);font-weight:700;font-size:.92rem;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:.15s}
+.btn:active{transform:scale(.985)}
+.btn-primary{background:var(--c-orange);color:#fff}
+.btn-primary:hover{background:#d9880a}
+.btn-ghost{background:transparent;color:var(--p-500);border:1.5px solid var(--line)}
+.btn-done{background:var(--chip);color:var(--muted);cursor:default}
+.btn-checkin{background:var(--ok);color:#fff}
+.btn-line{background:#06C755;color:#fff;text-decoration:none}
+.btn-line:hover{background:#05a948}
+/* ── QR ─────────────────────────────── */
+.qrbox{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.qrcell{flex:none;text-align:center;cursor:pointer}
+.qrcell span{display:block;font-size:.68rem;color:var(--muted);margin-top:4px}
+.qrimg{display:block;border:1px solid var(--line);border-radius:8px;background:#fff}
+.qrside{flex:1;min-width:180px}
+.qrside .btn{width:100%}
+.qrbig{background:#fff;padding:20px;border-radius:14px;text-align:center}
+.qrbig .qrname{font-weight:800;font-size:1.05rem;margin-top:10px;color:var(--text)}
+.qrbig .qrhint{font-size:.8rem;color:var(--muted);margin-top:2px}
+.btn-sm{flex:none;min-height:38px;padding:0 14px;font-size:.85rem}
+.seatline{margin-top:12px;padding-top:10px;border-top:1px solid var(--line-soft);
+  font-size:.88rem;color:var(--muted)}
+.seatline b{color:var(--c-orange);font-weight:800;font-size:1.05rem}
+.seatline.full{color:var(--warn);font-weight:700}
+.myorder{margin-top:10px;padding:10px 12px;background:var(--chip);border-radius:var(--r-sm);font-size:.88rem}
+.myorder b{color:var(--p-700)}
+
+/* ── 標籤 ───────────────────────────── */
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:700;
+  padding:3px 9px;border-radius:999px;background:var(--chip);color:var(--chip-text)}
+.pill.solid{color:#fff}
+.pill.warn{background:#fdece4;color:var(--warn)}
+.pill.ok{background:#e6f5ec;color:var(--ok)}
+.pills{display:flex;flex-wrap:wrap;gap:5px}
+
+/* ── 工具列 / 篩選 ──────────────────── */
+.tools{margin-bottom:10px}
+.search{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--r-sm);padding:0 12px;margin-bottom:9px}
+.search input{flex:1;border:none;outline:none;background:none;min-height:44px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:3px;-webkit-overflow-scrolling:touch}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--card);color:var(--muted);
+  border-radius:999px;padding:0 15px;min-height:40px;display:inline-flex;align-items:center;gap:4px;
+  font-size:.85rem;font-weight:600;cursor:pointer;white-space:nowrap}
+.chip.on{background:var(--p-700);color:#fff;border-color:var(--p-700)}
+
+/* ── 同學卡 ─────────────────────────── */
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.mcard{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  padding:14px 12px;text-align:center;cursor:pointer;box-shadow:var(--shadow);transition:.15s;position:relative}
+.mcard:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(45,20,24,.13)}
+.ava{width:56px;height:56px;border-radius:50%;margin:0 auto 8px;display:grid;place-items:center;
+  font-weight:800;font-size:1.15rem;color:#fff;background:var(--p-500)}
+.ava.lg{width:76px;height:76px;font-size:1.5rem}
+.mcard .n{font-weight:800;font-size:.98rem}
+.mcard .c{font-size:.78rem;color:var(--muted);margin-top:2px;line-height:1.4}
+.mcard .of{position:absolute;top:8px;right:8px;font-size:.66rem;font-weight:800;
+  background:var(--c-orange);color:#fff;padding:2px 7px;border-radius:999px}
+.mcard.dim{opacity:.62}
+.mcard .c.locked{color:var(--p-300);font-weight:600}
+.locked{color:var(--p-300);font-weight:600}
+/* 未登入時解釋「為什麼只看得到名字」。不解釋的話，同學會以為資料沒建好 */
+.notice-lock{background:var(--chip);border:1px solid var(--line);border-radius:var(--r-sm);
+  padding:11px 13px;font-size:.85rem;line-height:1.7;color:var(--muted);margin-bottom:10px}
+.notice-lock b{color:var(--p-700)}
+.gdot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:1px}
+
+/* ── 詳細頁 ─────────────────────────── */
+.backbar{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+.backbar button{background:none;border:none;color:var(--p-500);font-weight:700;font-size:.9rem;
+  cursor:pointer;display:flex;align-items:center;gap:4px;min-height:40px;padding:0}
+.detail h3{font-size:1.2rem;font-weight:800;line-height:1.4}
+.detail .bodytext{margin-top:10px;white-space:pre-wrap;font-size:1rem;line-height:1.85}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:.9rem;margin-top:12px}
+.kv dt{color:var(--muted);font-weight:600;white-space:nowrap}
+.block{margin-top:16px;padding-top:14px;border-top:1px solid var(--line-soft)}
+.block h4{font-size:.86rem;font-weight:800;color:var(--muted);letter-spacing:.5px;margin-bottom:6px}
+
+/* ── 相簿 ───────────────────────────── */
+.agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.acard{border-radius:var(--r);overflow:hidden;position:relative;aspect-ratio:4/3;cursor:pointer;
+  box-shadow:var(--shadow)}
+.acard img{width:100%;height:100%;object-fit:cover}
+.acard .cap{position:absolute;left:0;right:0;bottom:0;padding:22px 10px 9px;color:#fff;
+  background:linear-gradient(transparent,rgba(0,0,0,.72));font-size:.85rem;font-weight:700}
+.acard .cap span{display:block;font-size:.72rem;font-weight:500;opacity:.85}
+
+/* ── 空狀態 ─────────────────────────── */
+.empty{color:var(--muted);font-size:.88rem;padding:22px 18px;line-height:1.8;
+  background:var(--card);border:1px dashed var(--line);border-radius:var(--r)}
+.empty b{display:block;color:var(--text);font-size:.98rem;margin-bottom:5px}
+
+/* ── 抽屜 ───────────────────────────── */
+.scrim{position:fixed;inset:0;background:rgba(20,10,30,.45);z-index:60;display:none}
+.scrim.on{display:block}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:min(78vw,300px);background:var(--card);
+  z-index:61;transform:translateX(-100%);transition:transform .22s;overflow-y:auto;
+  box-shadow:4px 0 24px rgba(0,0,0,.18)}
+.drawer.on{transform:none}
+.drawerhead{display:flex;align-items:center;gap:10px;padding:16px 14px;border-bottom:1px solid var(--line);
+  padding-top:calc(16px + env(safe-area-inset-top))}
+.drawerhead img{width:40px;height:40px;object-fit:contain}
+.drawerhead .sub{font-size:.74rem;color:var(--muted)}
+.drawerhead b{font-size:.86rem;line-height:1.35;display:block}
+.drawerx{margin-left:auto;background:none;border:none;font-size:1.5rem;color:var(--muted);cursor:pointer;line-height:1}
+.drawer a.di{display:flex;align-items:center;gap:11px;padding:13px 16px;font-size:.94rem;
+  font-weight:600;border-bottom:1px solid var(--line-soft);cursor:pointer}
+.drawer a.di.on{color:var(--p-700);background:var(--chip)}
+.drawer .dgroup{font-size:.72rem;font-weight:800;color:var(--muted);letter-spacing:1px;
+  padding:14px 16px 6px}
+
+/* ── 底部導覽 ───────────────────────── */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:55;background:var(--card);
+  border-top:1px solid var(--line);display:flex;height:var(--nav-h);
+  padding-bottom:env(safe-area-inset-bottom)}
+.nav .brand{display:none}
+.nav button{flex:1;border:none;background:none;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;font-size:.68rem;font-weight:700;
+  color:var(--muted);cursor:pointer;position:relative}
+.nav button.on{color:var(--p-700)}
+.nav button .ic{stroke:currentColor;fill:none}
+.nav button .dot{position:absolute;top:8px;right:calc(50% - 18px);width:7px;height:7px;
+  border-radius:50%;background:var(--c-red);display:none}
+.nav button.hasnew .dot{display:block}
+.deskonly{display:none}
+
+/* ── 表單 ───────────────────────────── */
+.field{margin-bottom:12px}
+.field label{display:block;font-size:.82rem;font-weight:700;color:var(--muted);margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);
+  border-radius:var(--r-sm);padding:11px 12px;background:var(--card);outline:none}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--p-500)}
+.field textarea{min-height:110px;resize:vertical;line-height:1.7}
+.hint{font-size:.82rem;color:var(--muted);margin-top:4px;line-height:1.7}
+
+/* ── 燈箱 ───────────────────────────── */
+.lightbox{position:fixed;inset:0;background:rgba(10,5,15,.92);z-index:90;display:none;
+  align-items:center;justify-content:center;padding:20px}
+.lightbox.on{display:flex}
+.lightbox img{max-width:100%;max-height:88vh;border-radius:8px}
+.lightx{position:absolute;top:14px;right:16px;background:none;border:none;color:#fff;
+  font-size:2rem;cursor:pointer;line-height:1}
+
+/* ── 桌機 ───────────────────────────── */
+/* ── 手機（≤520px）───────────────────────────────────────────────
+   在職專班的同學九成用手機看，這一段不是「順便相容」，是主要情境。
+   ⛔ 不要把桌機的密度直接縮小搬過來 —— 行距、觸控目標、字級都要放大。 */
+@media (max-width:520px){
+  body{font-size:16px}                     /* ⛔ 不能低於 16px：iOS 聚焦輸入框會自動放大整頁 */
+  .wrap{padding:12px 12px 24px}
+  .hero{margin:-12px -12px 14px;height:180px}
+  .hero h2{font-size:1.28rem}
+  .hero .kicker{font-size:.66rem;letter-spacing:1.6px}
+
+  /* 名冊一行兩張，卡片才不會變成一長條 */
+  .mgrid{grid-template-columns:1fr 1fr;gap:8px}
+  .mcard{padding:12px 9px}
+  .ava{width:50px;height:50px;font-size:1.05rem}
+  .mcard .c{font-size:.74rem}
+  .mcard .head{font-size:.72rem;-webkit-line-clamp:2}
+
+  /* 詳細頁：讀的東西放大，標籤縮小 */
+  .detail h3{font-size:1.12rem}
+  .detail .bodytext{font-size:1rem;line-height:1.9}
+  .headline{font-size:.95rem;padding:11px 12px}
+
+  /* 定義清單在窄螢幕改成上下排，不然標題會被擠成直書 */
+  .kv{grid-template-columns:1fr;gap:2px 0}
+  .kv dt{margin-top:8px}
+  .kv dt:first-child{margin-top:0}
+
+  /* 行事曆：日期與內容一行放不下就讓標籤掉下來 */
+  .calrow{flex-wrap:wrap;padding:10px 12px}
+  .calrow .pill{order:3;margin-left:63px}
+  .caldate{width:52px}
+  .caldate.wide{width:58px}
+  .offlist{font-size:.84rem}
+
+  /* 表單：欄位與「給誰看」的選單各佔一行，不要擠在同一行 */
+  .field label{flex-wrap:wrap}
+  .vissel{margin-left:0;margin-top:2px}
+
+  .qfields{grid-template-columns:1fr 1fr}
+  .creditbar{height:52px}
+  .agrid{grid-template-columns:1fr 1fr;gap:8px}
+  .actions{flex-wrap:wrap}
+  .btn-sm{flex:1 1 auto}
+}
+
+@media (min-width:900px){
+  body{padding-bottom:0;padding-left:212px}
+  .nav{top:0;right:auto;width:212px;height:100vh;flex-direction:column;
+    border-top:none;border-right:1px solid var(--line);padding:0 0 20px;overflow-y:auto}
+  .nav .brand{display:block;text-align:center;padding:20px 12px 14px;border-bottom:1px solid var(--line-soft)}
+  .nav .brand img{width:60px;height:60px;object-fit:contain}
+  .nav .brandname{font-size:.8rem;font-weight:800;color:var(--p-700);margin-top:6px;line-height:1.4}
+  .nav .brandname span{display:block;font-size:.68rem;font-weight:500;color:var(--muted)}
+  .nav button{flex:none;flex-direction:row;justify-content:flex-start;gap:11px;
+    padding:13px 20px;font-size:.9rem;height:auto}
+  .nav button.on{background:var(--chip)}
+  .nav button .dot{top:14px;right:auto;left:12px}
+  .top .burger{display:none}
+  .deskonly{display:flex}
+  .hero{height:270px}
+}
+/* ── 行事曆 ─────────────────────────── */
+.calrow{display:flex;gap:11px;align-items:flex-start;padding:11px 14px;
+  border-bottom:1px solid var(--line-soft)}
+.calrow:last-child{border-bottom:none}
+.calrow.past{opacity:.45}
+.calrow.next{background:var(--chip)}
+.caldate{flex:none;width:52px;text-align:center;line-height:1.25}
+.caldate.wide{width:66px}
+.offlist{margin:0;padding-left:17px;font-size:.86rem;line-height:1.7}
+.offlist li{margin:2px 0}
+.caldate b{display:block;font-size:.92rem;font-weight:800}
+.caldate span{font-size:.68rem;color:var(--muted)}
+.calbody{flex:1;min-width:0}
+.caltext{font-size:.9rem;line-height:1.5}
+/* 學分條：必修 2 / 選修 30 的比例直接畫出來，比寫「2+30」好懂 */
+.creditbar{display:flex;gap:3px;height:46px;border-radius:var(--r-sm);overflow:hidden}
+.cseg{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:#fff;line-height:1.15;min-width:44px}
+.cseg b{font-size:1.05rem;font-weight:800}
+.cseg span{font-size:.66rem;opacity:.9}
+.cseg.req{background:var(--p-700)}
+.cseg.ele{background:var(--p-300)}
+.numlist{padding-left:20px;font-size:.92rem;line-height:1.75}
+.numlist li{margin:5px 0}
+.linkrow{display:flex;align-items:center;gap:10px;padding:13px 15px;font-size:.9rem;
+  font-weight:600;border-bottom:1px solid var(--line-soft);cursor:pointer}
+.linkrow:last-child{border-bottom:none}
+.linkrow:hover{background:var(--chip)}
+.linkrow .go{margin-left:auto;color:var(--p-500);font-weight:800}
+/* 課程查詢的條件：長得像系統上那排下拉，照著對就好 */
+.qfields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.qf{border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 11px;background:var(--card)}
+.qf .l{display:block;font-size:.68rem;color:var(--muted);font-weight:600}
+.qf b{font-size:.9rem;font-weight:700}
+.qf.key{border-color:var(--p-500);background:var(--chip)}
+.qf.key b{color:var(--p-700)}
+/* 操作步驟收在 details 裡，不然表單會被一大段說明撐開 */
+.howto{margin-top:8px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--card)}
+.howto summary{cursor:pointer;padding:9px 12px;font-size:.82rem;font-weight:700;color:var(--p-500);
+  list-style:none}
+.howto summary::-webkit-details-marker{display:none}
+.howto summary::before{content:"▸ "}
+.howto[open] summary::before{content:"▾ "}
+.howtobody{padding:2px 14px 12px;font-size:.85rem;line-height:1.75}
+.howtobody b{display:block;margin:8px 0 4px;color:var(--p-700)}
+.howtobody ol{padding-left:20px;margin:0}
+.howtobody li{margin:3px 0}
+.howtobody code{background:var(--line-soft);padding:1px 5px;border-radius:4px;font-size:.85em;
+  word-break:break-all}
+
+/* ── 個人資料 ───────────────────────── */
+.mcard .n .nick{display:block;font-size:.72rem;font-weight:600;color:var(--muted);margin-top:1px}
+.mcard .head{font-size:.75rem;color:var(--p-700);line-height:1.5;margin-top:6px;
+  font-weight:600;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.headline{margin-top:14px;padding:12px 14px;background:var(--chip);border-radius:var(--r-sm);
+  font-size:.95rem;font-weight:700;color:var(--p-700);line-height:1.65}
+/* 公開範圍的小標，只有本人看得到自己的 */
+.vistag{display:inline-block;font-size:.64rem;font-weight:700;padding:1px 7px;border-radius:999px;
+  background:var(--chip);color:var(--chip-text);vertical-align:1px;margin-left:5px}
+.vistag.open{background:#fdece4;color:var(--warn)}
+.vistag.shut{background:#eceaee;color:var(--muted)}
+.field label{display:flex;align-items:center;gap:6px}
+.field label .opt{font-size:.68rem;font-weight:600;color:var(--muted);
+  background:var(--line-soft);padding:1px 6px;border-radius:999px}
+.vissel{margin-left:auto;width:auto!important;font-size:.72rem!important;padding:3px 6px!important;
+  border-radius:999px!important;color:var(--muted);background:var(--line-soft)!important;
+  border:none!important;font-weight:600;cursor:pointer}
+/* 媒合的關鍵欄位：視覺上要比其他欄重 */
+.field.key{background:#fff9f0;border:1px solid #f6e3c8;border-radius:var(--r-sm);padding:11px 12px}
+.field.key label{color:var(--warn)}
+.qsec{margin-top:6px;padding:2px 14px 8px;background:var(--line-soft);border-radius:var(--r-sm)}
+
+.helpdoc h3{font-size:1.02rem;margin:18px 0 6px}
+.helpdoc h3:first-child{margin-top:0}
+.helpdoc ul{padding-left:20px;font-size:.92rem}
+.helpdoc li{margin:4px 0}
+.helpdoc{overflow-x:hidden}
+.helpdoc table{width:100%;border-collapse:collapse;font-size:.88rem;margin:8px 0;
+  display:block;overflow-x:auto;white-space:nowrap}
+.helpdoc td,.helpdoc th{white-space:normal;min-width:120px}
+.helpdoc th,.helpdoc td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+.helpdoc th{background:var(--chip);font-weight:700}
+.helpdoc code{background:var(--chip);padding:1px 5px;border-radius:4px;font-size:.85em}
+</style>
+</head>
+<body>
+
+<svg style="display:none">
+  <symbol id="i-home" viewBox="0 0 24 24" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5h-15S6 13 6 9Z"/><path d="M10 18a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l1.6 4.4L18 10l-4.4 1.6L12 16l-1.6-4.4L6 10l4.4-1.6L12 4Z"/></symbol>
+  <symbol id="i-people" viewBox="0 0 24 24" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16 5.2A3.2 3.2 0 0 1 16 14"/><path d="M17.5 20c0-2.4-.9-4.2-2.3-5.2"/></symbol>
+  <symbol id="i-swap" viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"/></symbol>
+  <symbol id="i-photo" viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="M4 17l5-4 4 3 3-2 4 3"/></symbol>
+  <symbol id="i-me" viewBox="0 0 24 24" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c0-3.6 3.4-6 7.5-6s7.5 2.4 7.5 6"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6l7-3Z"/></symbol>
+  <symbol id="i-form" viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H19v15H5.5A1.5 1.5 0 0 0 4 19.5Z"/><path d="M4 19.5A1.5 1.5 0 0 1 5.5 18H19v3H5.5A1.5 1.5 0 0 1 4 19.5Z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+</svg>
+
+<header class="top">
+  <button class="burger" onclick="openDrawer()" aria-label="選單">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+  </button>
+  <img class="logo" src="assets/mcd-logo.png" alt="逢甲建設碩士學程">
+  <div><h1>逢甲大學建設碩士在職學位學程</h1><div class="sub">第十屆同學看板</div></div>
+  <button class="me" id="meBtn" onclick="onMe()"><span class="dot"></span><span id="meName">登入</span></button>
+</header>
+
+<div class="scrim" id="scrim" onclick="closeDrawer()"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawerhead">
+    <img src="assets/mcd-logo.png" alt="">
+    <div><b>逢甲大學建設碩士在職學位學程</b><div class="sub">第十屆同學看板</div></div>
+    <button class="drawerx" onclick="closeDrawer()" aria-label="關閉">×</button>
+  </div>
+  <div id="drawerlist"></div>
+</aside>
+
+<div class="lightbox" id="qrmodal" onclick="closeQR()">
+  <div class="qrbig" id="qrbig"></div><button class="lightx" aria-label="關閉">×</button>
+</div>
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <img id="lightimg" alt=""><button class="lightx">×</button>
+</div>
+
+<main class="wrap view on" id="v-home"></main>
+<main class="wrap view" id="v-notices"></main>
+<main class="wrap view" id="v-acts"></main>
+<main class="wrap view" id="v-calendar"></main>
+<main class="wrap view" id="v-courses"></main>
+<main class="wrap view" id="v-members"></main>
+<main class="wrap view" id="v-mdetail"></main>
+<main class="wrap view" id="v-profile"></main>
+<main class="wrap view" id="v-needs"></main>
+<main class="wrap view" id="v-ndetail"></main>
+<main class="wrap view" id="v-album"></main>
+<main class="wrap view" id="v-pdetail"></main>
+<main class="wrap view" id="v-me"></main>
+<main class="wrap view" id="v-admin"></main>
+<main class="wrap view" id="v-help"></main>
+
+<div id="verline" style="text-align:center;font-size:.7rem;color:var(--muted);padding:16px 0 8px"></div>
+
+<nav class="nav" role="navigation">
+  <div class="brand">
+    <img src="assets/mcd-logo.png" alt="">
+    <div class="brandname">逢甲大學<br>建設碩士在職學位學程<span>第十屆同學看板</span></div>
+  </div>
+  <button class="on" data-v="home"><svg class="ic" width="21" height="21"><use href="#i-home"/></svg>首頁<i class="dot"></i></button>
+  <button data-v="notices"><svg class="ic" width="21" height="21"><use href="#i-bell"/></svg>公告<i class="dot"></i></button>
+  <button data-v="acts"><svg class="ic" width="21" height="21"><use href="#i-spark"/></svg>活動<i class="dot"></i></button>
+  <button data-v="calendar" class="deskonly"><svg class="ic" width="21" height="21"><use href="#i-cal"/></svg>重要行事曆<i class="dot"></i></button>
+  <button data-v="courses" class="deskonly"><svg class="ic" width="21" height="21"><use href="#i-book"/></svg>重要課程資訊<i class="dot"></i></button>
+  <button data-v="members"><svg class="ic" width="21" height="21"><use href="#i-people"/></svg>同學<i class="dot"></i></button>
+  <button data-v="needs" class="deskonly"><svg class="ic" width="21" height="21"><use href="#i-swap"/></svg>資源交流<i class="dot"></i></button>
+  <button data-v="album" class="deskonly"><svg class="ic" width="21" height="21"><use href="#i-photo"/></svg>相簿<i class="dot"></i></button>
+  <button data-v="me"><svg class="ic" width="21" height="21"><use href="#i-me"/></svg>我的<i class="dot"></i></button>
+  <button data-v="help" class="deskonly"><svg class="ic" width="21" height="21"><use href="#i-form"/></svg>使用說明<i class="dot"></i></button>
+  <button data-v="admin" id="nav-admin" class="deskonly" style="display:none"><svg class="ic" width="21" height="21"><use href="#i-shield"/></svg>班級管理<i class="dot"></i></button>
+</nav>
+
+<!-- QR 產生器：vendored qrcode-generator 1.4.4（MIT, Kazuhiko Arase）。
+     在瀏覽器本機算，不打第三方 API —— 同學的 LINE 連結不該外流給別人的伺服器。 -->
+<script src="assets/qrcode.js"></script>
+<script src="school.js"></script>
+<script src="data.js"></script>
+<!-- ⛔ private.js＝登入後才該看到的公司職稱。接上 Supabase 時把這一行刪掉，
+     改由 Edge Function 驗完身分才吐。留著它，前端的遮蔽只是遮蔽。 -->
+<script src="private.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
