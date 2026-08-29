@@ -439,6 +439,7 @@ img{max-width:100%}
 <main class="wrap view" id="v-members"></main>
 <main class="wrap view" id="v-mdetail"></main>
 <main class="wrap view" id="v-profile"></main>
+<main class="wrap view" id="v-claim"></main>
 <main class="wrap view" id="v-needs"></main>
 <main class="wrap view" id="v-ndetail"></main>
 <main class="wrap view" id="v-album"></main>
@@ -470,11 +471,13 @@ img{max-width:100%}
 <!-- QR 產生器：vendored qrcode-generator 1.4.4（MIT, Kazuhiko Arase）。
      在瀏覽器本機算，不打第三方 API —— 同學的 LINE 連結不該外流給別人的伺服器。 -->
 <script src="assets/qrcode.js"></script>
+<script src="config.js"></script>
 <script src="school.js"></script>
 <script src="data.js"></script>
 <!-- ⛔ private.js＝登入後才該看到的公司職稱。接上 Supabase 時把這一行刪掉，
      改由 Edge Function 驗完身分才吐。留著它，前端的遮蔽只是遮蔽。 -->
 <script src="private.js"></script>
+<script src="backend.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

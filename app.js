@@ -8,8 +8,15 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v1.0　2026-08-29";
-const BACKEND = "mock";           // "mock" | "supabase"
+const VERSION = "v1.1　2026-08-29";
+
+/* 模式由 config.js 決定，不是寫死的：
+     三個連線值填齊 → "supabase"（正式，資料進資料庫）
+     沒填齊         → "mock"（版型，讀 data.js，改動只留在本機瀏覽器）
+   ⛔ 不要手動改成 "supabase" 來測試 —— 沒有連線值它會整頁壞掉，
+      而畫面上不會說原因。 */
+const BACKEND = (typeof CONFIG !== "undefined" && CONFIG.ready) ? "supabase" : "mock";
+const LIVE = BACKEND === "supabase";
 
 /* ── 後端接點 ────────────────────────────────────────────────────
    正式接 Supabase 時，把每個 mock 分支換成 rest()／Edge Function：
@@ -30,49 +37,54 @@ const BACKEND = "mock";           // "mock" | "supabase"
       要走 Edge Function 驗身分後才吐。                              */
 const db = {
   async members(){
+    if(LIVE) return SB.members();
     // cohort 統一在這裡補上，不寫進名冊那 50 行 —— 現在整批都是第十屆，
     // 之後多一屆時是新增資料列，不是回頭改舊的。
-    if(BACKEND === "mock")
-      return structuredClone(MOCK_MEMBERS).map(m => ({ cohort:CURRENT_COHORT, ...m }));
-    // return rest("members?select=" + MEMBER_FIELDS + "&is_member=eq.true&order=sort.asc");
+    return structuredClone(MOCK_MEMBERS).map(m => ({ cohort:CURRENT_COHORT, ...m }));
   },
-  async posts(){
-    if(BACKEND === "mock") return structuredClone(MOCK_POSTS);
-    // return rest("posts?select=" + POST_FIELDS + "&order=created_at.desc");
-  },
-  async needs(){
-    if(BACKEND === "mock") return structuredClone(MOCK_NEEDS);
-    // return rest("needs?select=id,author_id,title,body,done,helpers,created_at&order=created_at.desc");
-  },
-  async albums(){
-    if(BACKEND === "mock") return structuredClone(MOCK_ALBUMS);
-    // return rest("albums?select=id,title,date,cover,count&order=date.desc");
-  },
+  async posts(){   return LIVE ? SB.posts()  : structuredClone(MOCK_POSTS); },
+  async needs(){   return LIVE ? SB.needs()  : structuredClone(MOCK_NEEDS); },
+  async albums(){  return LIVE ? SB.albums() : structuredClone(MOCK_ALBUMS); },
+
   // 席次是公開數字（只吐數量、不吐是誰）；「我報名了哪幾場」要驗身分
   async seats(){
-    if(BACKEND === "mock"){
-      const s = {};
-      MOCK_POSTS.filter(p => p.capacity).forEach(p => {
-        s[p.id] = { capacity:p.capacity, reserved_seats:p.reserved_seats||0,
-                    taken: MOCK_SEATS_TAKEN[p.id] || 0, waiting: MOCK_WAITING[p.id] || 0 };
-      });
-      return s;
-    }
-    // return rest("v_post_seats?select=post_id,capacity,reserved_seats,taken,waiting");
+    if(LIVE) return SB.seats();
+    const s = {};
+    MOCK_POSTS.filter(p => p.capacity).forEach(p => {
+      s[p.id] = { capacity:p.capacity, reserved_seats:p.reserved_seats||0,
+                  taken: MOCK_SEATS_TAKEN[p.id] || 0, waiting: MOCK_WAITING[p.id] || 0 };
+    });
+    return s;
   },
   async mySignups(){
-    if(BACKEND === "mock") return new Map(MY_MOCK_SIGNUPS.map(x => [x.post_id, x]));
-    // return signupApi("mine");
+    if(LIVE) return SB.mySignups();
+    return new Map(MY_MOCK_SIGNUPS.map(x => [x.post_id, x]));
   },
   async signup(postId, on){
-    if(BACKEND === "mock"){
-      if(on){ MY_MOCK_SIGNUPS.push({post_id:postId, status:"ok"}); MOCK_SEATS_TAKEN[postId] = (MOCK_SEATS_TAKEN[postId]||0)+1; }
-      else  { MY_MOCK_SIGNUPS = MY_MOCK_SIGNUPS.filter(x => x.post_id !== postId); MOCK_SEATS_TAKEN[postId] = Math.max(0,(MOCK_SEATS_TAKEN[postId]||0)-1); }
-      return {ok:true};
-    }
-    // return signupApi(on ? "join" : "cancel", {post_id:postId});
+    if(LIVE) return SB.signup(postId, on);
+    if(on){ MY_MOCK_SIGNUPS.push({post_id:postId, status:"ok"});
+            MOCK_SEATS_TAKEN[postId] = (MOCK_SEATS_TAKEN[postId]||0)+1; }
+    else  { MY_MOCK_SIGNUPS = MY_MOCK_SIGNUPS.filter(x => x.post_id !== postId);
+            MOCK_SEATS_TAKEN[postId] = Math.max(0,(MOCK_SEATS_TAKEN[postId]||0)-1); }
+    return {ok:true};
+  },
+
+  /* 個人資料。
+     正式模式：資料庫已經按可見範圍遮好才吐出來 —— 前端拿到的就是能看的。
+     版型模式：private.js 全都在瀏覽器裡，靠 profileOf() 自己遮。
+     ⚠️ 這是兩者最大的差別，也是正式版才算真的有隱私的原因。 */
+  async profiles(){
+    if(LIVE) return SB.profiles();
+    return null;                       // 版型模式走舊路徑
+  },
+  async saveProfile(fields, vis){
+    if(LIVE) return SB.saveProfile(fields, vis);
+    const all = loadEdits();
+    all[ME.id] = Object.assign({}, all[ME.id], fields, { vis });
+    saveEdits(all);
   }
 };
+
 
 // 假的報名狀態（版型用）
 const MOCK_SEATS_TAKEN = { 101: 23, 102: 41, 103: 0 };
@@ -81,6 +93,8 @@ let   MY_MOCK_SIGNUPS  = [];
 
 /* ── 狀態 ──────────────────────────────────────────────────────── */
 let ME = null, MEMBERS = [], POSTS = [], NEEDS = [], ALBUMS = [], SEATS = {}, MY_SIGNUPS = new Map();
+// 正式模式下所有人的個人資料（資料庫已按可見範圍遮好）
+let PROFILES = {};
 let VIEW = "home", DETAIL = null;
 let M_FILTER = { q:"", group:"all", ind:"all" };
 let ACT_TAB = "all", NEED_TAB = "open";
@@ -193,6 +207,7 @@ function saveEdits(o){
 }
 // 完整的個人資料＝名冊帶進來的 ＋ 本人改過的
 function fullProfile(id){
+  if(LIVE) return PROFILES[id] || { vis:{} };
   const seed = (typeof PRIVATE_PROFILE !== "undefined" && PRIVATE_PROFILE[id]) || {};
   const mine = loadEdits()[id] || {};
   return { ...seed, ...mine, vis:{ ...(seed.vis || {}), ...(mine.vis || {}) } };
@@ -205,6 +220,8 @@ function fieldVis(id, key){
 function canSee(member, key){
   const p = fullProfile(member.id);
   if(!p[key]) return false;                              // 沒填就沒有
+  // 正式模式：資料庫吐得出來就代表我看得到，不必再算一次
+  if(LIVE) return true;
   return viewerRank(member) >= VIS[fieldVis(member.id, key)].rank;
 }
 const seeVal = (member, key) => canSee(member, key) ? fullProfile(member.id)[key] : null;
@@ -216,6 +233,13 @@ const seesAnything = m => PROFILE_FIELDS.some(f => canSee(m, f.key));
 function profileOf(id){
   const m = memberOf(id);
   if(!m) return null;
+  // 正式模式：資料庫已經遮好，直接用。
+  // ⛔ 不要在這裡再判斷一次可見範圍 —— 前端沒有「別人設成 private 的內容」，
+  //    再判斷一次只會把本來看得到的東西也擋掉。
+  if(LIVE){
+    const p = PROFILES[id];
+    return (p && Object.keys(p).length) ? p : null;
+  }
   const out = {};
   PROFILE_FIELDS.forEach(f => { const v = seeVal(m, f.key); if(v) out[f.key] = v; });
   return Object.keys(out).length ? out : null;
@@ -812,18 +836,19 @@ function lineHelpHTML(){
 }
 
 function saveProfile(){
-  const all = loadEdits();
-  const mine = all[ME.id] || { vis:{} };
+  const mine = LIVE ? { vis:{} } : (loadEdits()[ME.id] || { vis:{} });
+  const all = LIVE ? null : loadEdits();
   mine.vis = mine.vis || {};
   PROFILE_FIELDS.forEach(f => {
     const i = el("pf_" + f.key), s = el("pv_" + f.key);
     if(i) mine[f.key] = (i.value || "").trim();
     if(s) mine.vis[f.key] = s.value;
   });
-  all[ME.id] = mine;
-  saveEdits(all);
-  alert("已儲存。\n（版型階段只存在這台瀏覽器）");
-  openMember(ME.id);   // 直接跳去看效果，比回設定頁有感
+  db.saveProfile(mine, mine.vis).then(async () => {
+    await reload();
+    alert(LIVE ? "已儲存。" : "已儲存。\n（版型模式只存在這台瀏覽器，換一台就不見）");
+    openMember(ME.id);   // 直接跳去看效果，比回設定頁有感
+  }).catch(e => alert("存不起來：" + e.message));
 }
 
 /* ── 資源交流 ──────────────────────────────────────────────────── */
@@ -1102,58 +1127,25 @@ function adminCalendarHTML(today, next){
     </article>`;
 }
 
-/* ── 重要課程資訊 ────────────────────────────────────────────────── */
+/* ── 重要課程資訊 ────────────────────────────────────────────────
+   ⛔ 只放會變動的東西。招生簡章上的畢業學分、課程結構、三組方向、
+      教育目標、核心能力都拿掉了 —— 同學考進來時就看過，
+      在這裡重印只會把真正要看的東西往下推。要查的人給連結就夠。 */
 function render_courses(){
-  const c = COURSE_INFO;
+  const c = COURSE_INFO, t = THIS_TERM_COURSES;
   el("v-courses").innerHTML = `
-    <div class="sec"><h2>重要課程資訊</h2></div>
+    <div class="sec"><h2>本學期課程</h2><span class="hint">${esc(t.term)}</span></div>
+    ${t.rows.length ? `<article class="card">
+        ${t.rows.map(courseRow).join("")}
+      </article>`
+      : emptyBox("還沒有整理本學期的課",
+          "這一區放「我們這屆實際會去上的那幾門」：課名、老師、上課時間、教室。等選課結果出來由幹部整理進來，每學期換一次。學程的完整課程規劃在下面的連結，不重複放。")}
 
-    <article class="card bigcard">
-      <div class="band">
-        <div class="kicker">畢業門檻</div>
-        <div class="t">${c.credits.total} 學分</div>
-      </div>
-      <div class="body">
-        <div class="creditbar">
-          <div class="cseg req" style="flex:${c.credits.required}">
-            <b>${c.credits.required}</b><span>必修</span></div>
-          <div class="cseg ele" style="flex:${c.credits.elective}">
-            <b>${c.credits.elective}</b><span>選修</span></div>
-        </div>
-        <div class="hint" style="margin-top:10px">${esc(c.summary)}</div>
-      </div>
-    </article>
-
-    <div class="sec"><h2>課程結構</h2></div>
-    <article class="card pad">
-      <div class="block" style="margin-top:0;padding-top:0;border:none">
-        <h4>${esc(c.required.title)}</h4><div class="bodytext">${esc(c.required.body)}</div></div>
-      <div class="block"><h4>${esc(c.common.title)}</h4><div class="bodytext">${esc(c.common.body)}</div></div>
-    </article>
-
-    <div class="sec"><h2>三組課程方向</h2></div>
-    ${Object.entries(GROUPS).map(([k,g]) => `
-      <article class="card pad">
-        <div class="pills" style="margin-bottom:6px">
-          <span class="pill solid" style="background:${g.color}">${esc(g.name)}組</span>
-          <span class="pill">${MEMBERS.filter(m => m.group === k).length} 位同學</span>
-        </div>
-        <div class="bodytext" style="margin-top:4px">${esc(c.groups[k] || "")}</div>
-      </article>`).join("")}
-
-    <div class="sec"><h2>學程教育目標</h2></div>
-    <article class="card pad"><ol class="numlist">
-      ${c.goals.map(g => `<li>${esc(g)}</li>`).join("")}</ol></article>
-
-    <div class="sec"><h2>核心能力</h2></div>
-    <article class="card pad"><ol class="numlist">
-      ${c.abilities.map(a => `<li>${esc(a)}</li>`).join("")}</ol></article>
-
-    <div class="sec"><h2>查課程</h2></div>
+    <div class="sec"><h2>自己查課</h2></div>
     <article class="card pad">
       <div class="hint" style="margin-bottom:10px">
-        課程查詢系統沒辦法做成直達連結（它的網址帶一個會過期的憑證，
-        選完條件網址也不會變）。<b>照下面這樣選就對了</b>：</div>
+        課程查詢系統沒辦法做成直達連結（網址帶一個會過期的憑證，
+        選完條件網址也不會變）。<b>照下面這樣選</b>：</div>
       <div class="hint" style="margin-bottom:8px">分頁選「${esc(c.search.tab)}」</div>
       <div class="qfields">
         ${c.search.fields.map(f => `<div class="qf${f.key ? " key" : ""}">
@@ -1164,15 +1156,23 @@ function render_courses(){
       </div>
     </article>
 
-    <div class="sec"><h2>常用系統</h2></div>
-    <article class="card">
+    <article class="card" style="margin-top:12px">
       ${c.links.map(l => `<a class="linkrow" href="${esc(l.url)}" target="_blank" rel="noopener">
         <span>${esc(l.label)}</span><span class="go">↗</span></a>`).join("")}
-    </article>
-
-    <div class="hint" style="margin-top:12px">
-      資料整理自學程官網「碩士專業」頁（2026-08-29）。
-      實際修業規定以學程辦公室與課程查詢系統公告為準。</div>`;
+    </article>`;
+}
+function courseRow(r){
+  return `<div class="calrow">
+    <div class="calbody">
+      <div class="caltext"><b>${esc(r.name)}</b></div>
+      <div class="hint">${[r.teacher, r.when, r.room].filter(Boolean).map(esc).join("　")}</div>
+    </div>
+    <div class="pills" style="align-self:flex-start;flex-direction:column;align-items:flex-end">
+      ${r.kind ? `<span class="pill${r.kind === "必修" ? " warn" : ""}">${esc(r.kind)}</span>` : ""}
+      ${r.credits ? `<span class="pill">${r.credits} 學分</span>` : ""}
+      ${r.group ? `<span class="pill solid" style="background:${groupColor(r.group)}">${esc((GROUPS[r.group]||{}).short||"")}</span>` : ""}
+    </div>
+  </div>`;
 }
 
 /* ── 使用說明 ──────────────────────────────────────────────────── */
@@ -1221,7 +1221,7 @@ function render_help(){
 }
 
 /* ── 導覽 ──────────────────────────────────────────────────────── */
-const VIEWS = ["home","notices","acts","calendar","courses","members","mdetail","profile","needs","ndetail","album","pdetail","me","admin","help"];
+const VIEWS = ["home","notices","acts","calendar","courses","members","mdetail","profile","claim","needs","ndetail","album","pdetail","me","admin","help"];
 const NAV_TITLES = { home:"首頁", notices:"公告", acts:"活動",
   calendar:"重要行事曆", courses:"重要課程資訊", members:"同學名冊",
   needs:"資源交流", album:"相簿", me:"我的", admin:"班級管理", help:"使用說明" };
@@ -1266,19 +1266,25 @@ function openQR(id){
 function closeQR(){ el("qrmodal").classList.remove("on"); }
 function closeLightbox(){ el("lightbox").classList.remove("on"); }
 
-/* ── 登入（版型階段是假的）────────────────────────────────────────
-   正式版：LINE Login → Edge Function 換 token → localStorage
-   第一次登入要「認領身分」：從名冊挑自己是誰，幹部核可後綁定。   */
+/* ── 登入 ────────────────────────────────────────────────────────
+   正式模式：LINE Login → auth 換 token → 第一次要認領身分。
+   版型模式：沒有真登入，用「我的」頁面的切換身分預覽三種畫面。   */
 function onMe(){
-  if(ME) go("me");
-  else { alert("版型階段：正式版按這裡會跳 LINE 登入。\n先到「我的」頁面用「切換身分」預覽。"); go("me"); }
+  if(ME){ go("me"); return; }
+  if(LIVE){ lineLogin(); return; }
+  alert("版型模式：填好 config.js 之後，按這裡就會跳 LINE 登入。\n\n" +
+        "現在先到「我的」頁面用最下面的「切換身分」預覽。");
+  go("me");
 }
 function loginAs(id){
   ME = id ? memberOf(id) : null;
   MY_MOCK_SIGNUPS = id ? [{ post_id:101, status:"ok" }] : [];
   reload().then(() => { paintMe(); render(VIEW); });
 }
-function logout(){ loginAs(null); }
+function logout(){
+  if(LIVE){ logoutReal(); return; }
+  loginAs(null);
+}
 function paintMe(){
   el("meName").textContent = ME ? ME.name : "登入";
   el("meBtn").classList.toggle("in", !!ME);
@@ -1288,13 +1294,27 @@ function paintMe(){
 
 /* ── 啟動 ──────────────────────────────────────────────────────── */
 async function reload(){
-  [MEMBERS, POSTS, NEEDS, ALBUMS, SEATS, MY_SIGNUPS] = await Promise.all([
-    db.members(), db.posts(), db.needs(), db.albums(), db.seats(), db.mySignups()
+  const [m, p, n, a, s, mine, prof] = await Promise.all([
+    db.members(), db.posts(), db.needs(), db.albums(), db.seats(), db.mySignups(), db.profiles()
   ]);
+  MEMBERS = m; POSTS = p; NEEDS = n; ALBUMS = a; SEATS = s; MY_SIGNUPS = mine;
+  if(prof) PROFILES = prof;
 }
+
 (async function boot(){
-  el("verline").textContent = VERSION;
-  await reload();
+  el("verline").textContent = VERSION + (LIVE ? "" : "　版型模式");
+  try{
+    if(LIVE){
+      // 先處理 LINE 導回來的 code，再恢復既有登入 —— 順序反了會白登入一次
+      const handled = await handleLineCallback();
+      if(!handled) ME = await restoreLogin();
+    }
+    await reload();
+  }catch(e){
+    console.error(e);
+    el("verline").innerHTML = `<span style="color:var(--c-red)">讀取失敗：${esc(e.message)}</span>`;
+  }
   paintMe();
-  go("home");
+  // 認領畫面是登入流程的一部分，不要被 go("home") 蓋掉
+  if(VIEW !== "claim") go("home");
 })();
