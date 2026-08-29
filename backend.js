@@ -38,13 +38,21 @@ async function rest(path, init){
 async function rpc(fn, args){
   return rest("rpc/" + fn, { method:"POST", body: JSON.stringify(args || {}) });
 }
-// 呼叫 auth 那支 Edge Function
+/* 呼叫 auth 那支 Edge Function。
+   ⛔ 這裡【不能】用 sbHeaders() —— 它會多送一個 apikey 標頭，
+      而 apikey 不在 function 的 Access-Control-Allow-Headers 裡，
+      瀏覽器的預檢就會失敗，整個請求連送都送不出去（Failed to fetch）。
+      Edge Function 本身不需要 apikey（Verify JWT 已關），送了只是害死自己。
+   ⚠️ 這個 bug 用 curl 測不出來：curl 不做 CORS 預檢。 */
 async function authApi(action, body){
+  const t = tokenOf();
+  const h = { "Content-Type": "application/json" };
+  if(t) h.Authorization = "Bearer " + t;
   const r = await fetch(CONFIG.SUPABASE_URL + "/functions/v1/auth", {
-    method: "POST",
-    headers: sbHeaders({ "Content-Type": "application/json" }),
+    method: "POST", headers: h,
     body: JSON.stringify(Object.assign({ action }, body || {}))
   });
+  if(!r.ok && r.status >= 500) throw new Error("伺服器錯誤 " + r.status);
   return r.json();
 }
 
@@ -82,8 +90,17 @@ async function handleLineCallback(){
     return true;
   }
 
-  const r = await authApi("login", { code, redirect_uri: CONFIG.REDIRECT });
-  if(r.error){ alert("登入失敗：" + r.error); return true; }
+  let r;
+  try{
+    r = await authApi("login", { code, redirect_uri: CONFIG.REDIRECT });
+  }catch(e){
+    // ⛔ 這裡一定要講出來。之前是把錯誤吞掉，結果症狀變成
+    //    「按了登入、LINE 也過了、回來卻等於沒登入，而且沒有任何訊息」——
+    //    那是最難查的一種壞法。
+    loginFailed("連不上登入伺服器（" + e.message + "）");
+    return true;
+  }
+  if(r.error){ loginFailed(r.error, r.detail); return true; }
 
   if(r.need_claim){
     CLAIM = { ticket: r.claim_ticket, line_name: r.line_name, list: r.candidates || [] };
@@ -93,6 +110,19 @@ async function handleLineCallback(){
   setToken(r.token);
   ME = r.me;
   return true;
+}
+
+// 登入失敗時顯示在畫面上，不要只留在 console
+function loginFailed(msg, detail){
+  console.error("登入失敗", msg, detail);
+  const bar = el("loaderr");
+  if(bar){
+    bar.style.display = "block";
+    bar.innerHTML = `<b>登入沒有成功</b><br>${esc(msg)}` +
+      (detail ? `<br><span style="opacity:.85;font-size:.8rem">${esc(JSON.stringify(detail))}</span>` : "") +
+      `<br><button class="btn btn-sm" style="margin-top:8px;background:#fff;color:var(--p-700)"
+         onclick="lineLogin()">再試一次</button>`;
+  }
 }
 
 // 重新整理後恢復登入狀態

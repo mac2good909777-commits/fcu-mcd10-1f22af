@@ -37,7 +37,9 @@ const admin = createClient(
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, content-type",
+  // ⚠️ 前端如果多送了任何標頭，這裡沒列出來，瀏覽器的預檢就會失敗，
+  //    症狀是「Failed to fetch」而且 curl 測不出來（curl 不做預檢）。
+  "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 const json = (body: unknown, status = 200) =>
