@@ -319,7 +319,9 @@ Deno.serve(async (req) => {
       const fields = body.fields as unknown as Record<string, unknown> ?? {};
       // ⛔ 白名單：只讓改得動這些欄位。
       //    不擋的話，前端送 member_id 之類的東西就能改到別的地方。
-      const ALLOW = ["nickname","company","title","industry","tag","headline","intro",
+      const ALLOW = ["nickname",
+                     "company","title","company2","title2","company3","title3",
+                     "industry","tag","headline","intro",
                      "resource","wish","topics","edu_bg","web","line_url",
                      "q_why","q_thesis","q_team","vis"];
       // ⚠️ confirmed_at 是「本人確認過」的印記。

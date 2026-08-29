@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v2.2　2026-08-30";
+const VERSION = "v2.3　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -167,8 +167,14 @@ function viewerRank(target){
 const PROFILE_FIELDS = [
   { key:"nickname", label:"小名／稱呼", type:"text",   vis:"class",
     hint:"名冊上是本名，這裡可以填大家平常怎麼叫你" },
-  { key:"company",  label:"公司",       type:"text",   vis:"class", seed:true },
-  { key:"title",    label:"職稱",       type:"text",   vis:"class", seed:true },
+  /* 三組「單位／職稱」：班上不少人身兼多家（自己開公司＋事務所＋掛顧問），
+     只給一組會逼他們挑一個填，資訊反而失真。
+     ⚠️ 職稱的公開範圍跟著同一組的單位走，不另外設 ——
+        六個下拉選單只會讓人不想填。 */
+  { key:"company",  pair:"title",  label:"單位／職稱",     type:"pair", vis:"class", seed:true },
+  { key:"company2", pair:"title2", label:"單位／職稱（二）", type:"pair", vis:"class",
+    hint:"身兼多家的話填這裡，沒有就留空" },
+  { key:"company3", pair:"title3", label:"單位／職稱（三）", type:"pair", vis:"class" },
   { key:"industry", label:"產業分類",   type:"select", vis:"class", seed:true,
     hint:"名冊上的服務單位幫你分好了，不對就改。這欄是名冊的篩選依據" },
   { key:"tag",      label:"產業標籤",   type:"text",   vis:"class",
@@ -695,6 +701,13 @@ function render_mdetail(){
 
       ${v("headline") ? `<div class="headline">「${esc(v("headline"))}」</div>` : ""}
 
+      ${[["company","title"],["company2","title2"],["company3","title3"]]
+        .map(([c, t]) => ({ c: v(c), t: v(t) }))
+        .filter(x => x.c || x.t)
+        .map((x, i) => `<div class="block"><h4>${i === 0 ? "服務單位" : "另一個身分"}${
+          isMe ? visTag(m.id, i === 0 ? "company" : i === 1 ? "company2" : "company3") : ""}</h4>
+          <div class="bodytext">${esc(x.c || "")}${x.c && x.t ? "　" : ""}${esc(x.t || "")}</div></div>`).join("")}
+
       ${block("intro")}
       ${block("resource")}
       ${block("wish")}
@@ -807,6 +820,22 @@ function render_profile(){
 function profileField(f, p){
   const val = p[f.key] || "";
   const vis = p.vis?.[f.key] || f.vis;
+  if(f.type === "pair"){
+    // 一行兩格：左邊單位、右邊職稱，共用一個公開範圍
+    return `<div class="field">
+      <label>${esc(f.label)}
+        <select class="vissel" id="pv_${f.key}">
+          ${Object.entries(VIS).map(([k, o]) =>
+            `<option value="${k}"${k === vis ? " selected" : ""}>${esc(o.label)}</option>`).join("")}
+        </select>
+      </label>
+      <div class="pairrow">
+        <input id="pf_${f.key}" value="${esc(val)}" placeholder="單位／公司">
+        <input id="pf_${f.pair}" value="${esc(p[f.pair] || "")}" placeholder="職稱">
+      </div>
+      ${f.hint ? `<div class="hint">${esc(f.hint)}</div>` : ""}
+    </div>`;
+  }
   const input = f.type === "area"
     ? `<textarea id="pf_${f.key}" rows="4">${esc(val)}</textarea>`
     : f.type === "select"
@@ -862,6 +891,8 @@ function saveProfile(){
     const i = el("pf_" + f.key), s = el("pv_" + f.key);
     if(i) mine[f.key] = (i.value || "").trim();
     if(s) mine.vis[f.key] = s.value;
+    // pair 的第二格（職稱）也要收；它沒有自己的公開範圍，跟著單位走
+    if(f.pair){ const j = el("pf_" + f.pair); if(j) mine[f.pair] = (j.value || "").trim(); }
   });
   db.saveProfile(mine, mine.vis).then(async () => {
     await reload();
