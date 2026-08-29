@@ -472,13 +472,16 @@ img{max-width:100%}
 
 <!-- QR 產生器：vendored qrcode-generator 1.4.4（MIT, Kazuhiko Arase）。
      在瀏覽器本機算，不打第三方 API —— 同學的 LINE 連結不該外流給別人的伺服器。 -->
-<script src="assets/qrcode.js"></script>
-<script src="config.js"></script>
-<script src="school.js"></script>
-<script src="data.js"></script>
+<!-- ⚠️ 每支 js 後面的 ?v= 是快取破解用的。
+     GitHub Pages 會讓瀏覽器把 js 快取住，不加這個的話我改了東西，
+     同學那邊還是舊版，而且看不出來 —— 每次改版把 v 一起換掉。 -->
+<script src="assets/qrcode.js?v=13"></script>
+<script src="config.js?v=13"></script>
+<script src="school.js?v=13"></script>
+<script src="data.js?v=13"></script>
 <!-- private.js 已於 2026-08-29 刪除：公司職稱改由資料庫按可見範圍吐出。
      ⛔ 不要為了「本機測試方便」把它加回來 —— 那等於再開一個公開的個資副本。 -->
-<script src="backend.js"></script>
-<script src="app.js"></script>
+<script src="backend.js?v=13"></script>
+<script src="app.js?v=13"></script>
 </body>
 </html>
