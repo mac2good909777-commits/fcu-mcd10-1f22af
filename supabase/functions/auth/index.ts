@@ -9,6 +9,16 @@
 //   claim    第一次登入時，從名冊挑自己是誰 → 綁定
 //   whoami   用 token 換回自己的身分（重新整理後恢復登入狀態）
 //   ping     診斷用：回報環境變數在不在、資料庫通不通（不吐任何機密）
+//   profiles     依「誰在看」吐出遮蔽過的個人資料
+//   save_profile 存自己的資料
+//   signups      我報名了哪幾場 / 報名 / 取消
+//
+// ⛔ 為什麼這些也放進來，而不是讓前端直接打 PostgREST：
+//    這個專案的 JWT 簽章金鑰是 ECC(P-256)，我們手上只有 legacy 的
+//    HS256 共用密鑰 —— PostgREST 解不開我們發的 token，會回
+//    PGRST301「None of the keys was able to decode the JWT」。
+//    所以前端對 PostgREST 一律只用 publishable key 讀公開資料，
+//    凡是需要「你是誰」的操作都繞到這裡，由這支 function 驗身分。
 //
 // 需要的環境變數（Supabase → Edge Functions → Secrets）：
 //   LINE_CHANNEL_ID       LINE Login channel 的 Channel ID
@@ -282,6 +292,69 @@ Deno.serve(async (req) => {
         method: "PATCH",
         body: JSON.stringify({ line_user_id: null, claimed_at: null }),
         headers: { Prefer: "return=minimal" },
+      });
+      return json({ ok: true });
+    }
+
+    // ── 以下都需要身分 ───────────────────────────────────────────
+    const c = await readToken(req);
+    const meId = c ? Number(c.member_id) : null;
+    const meCohort = c ? Number(c.cohort) : null;
+
+    // 個人資料：由資料庫按可見範圍遮好才吐出來
+    if (action === "profiles") {
+      const rows = await db(
+        `rpc/visible_profiles`,
+        {
+          method: "POST",
+          body: JSON.stringify({ p_viewer: meId, p_cohort: meCohort }),
+        },
+      );
+      return json({ ok: true, profiles: rows ?? [] });
+    }
+
+    // 存自己的資料。⛔ 只認 token 裡的身分，不接受前端指定 member_id。
+    if (action === "save_profile") {
+      if (!meId) return json({ error: "請先登入" }, 401);
+      const fields = body.fields as unknown as Record<string, unknown> ?? {};
+      // ⛔ 白名單：只讓改得動這些欄位。
+      //    不擋的話，前端送 member_id 之類的東西就能改到別的地方。
+      const ALLOW = ["nickname","company","title","industry","tag","headline","intro",
+                     "resource","wish","topics","edu_bg","web","line_url",
+                     "q_why","q_thesis","q_team","vis"];
+      const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+      for (const k of ALLOW) if (k in fields) patch[k] = fields[k];
+
+      const rows = await db(`profiles?member_id=eq.${meId}`, {
+        method: "PATCH",
+        body: JSON.stringify(patch),
+        headers: { Prefer: "return=representation" },
+      });
+      if (!rows?.length) {
+        // 認領時應該已經建過列了，但保險起見補一次
+        await db("profiles", {
+          method: "POST",
+          body: JSON.stringify({ member_id: meId, ...patch }),
+          headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+        });
+      }
+      return json({ ok: true });
+    }
+
+    // 我報名了哪幾場
+    if (action === "my_signups") {
+      if (!meId) return json({ ok: true, signups: [] });
+      const rows = await db(`signups?select=post_id,status,note&member_id=eq.${meId}`);
+      return json({ ok: true, signups: rows ?? [] });
+    }
+
+    // 報名／取消。名額與候補的判斷在資料庫函式裡，避免兩人同時報名超賣。
+    if (action === "signup" || action === "unsignup") {
+      if (!meId) return json({ error: "請先登入" }, 401);
+      const fn = action === "signup" ? "join_event_as" : "leave_event_as";
+      await db(`rpc/${fn}`, {
+        method: "POST",
+        body: JSON.stringify({ p_member: meId, p_post_id: Number(body.post_id) }),
       });
       return json({ ok: true });
     }

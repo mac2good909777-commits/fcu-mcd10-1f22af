@@ -13,13 +13,19 @@ const tokenOf = () => { try { return localStorage.getItem(TOKEN_KEY) || ""; } ca
 const setToken = t => { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); }catch(e){} };
 
 /* PostgREST 的標頭。
-   ⚠️ apikey 永遠是 anon key；Authorization 有登入才換成自己的 token。
-      兩個都要給 —— 只給 Authorization 會被當成沒帶 apikey 而擋掉。 */
+   ⛔ 【不要】把我們自己簽的 token 送給 PostgREST。
+      這個專案的 JWT 簽章金鑰是 ECC(P-256)，而我們手上只有
+      legacy 的 HS256 共用密鑰 —— PostgREST 解不開，會回：
+        PGRST301 "None of the keys was able to decode the JWT"
+      而且是【每一個查詢都 401】，連本來公開的名冊都讀不到。
+      症狀就是「登入之後整個網站變空白」。
+
+      所以 PostgREST 一律只用 publishable key、只讀公開資料；
+      需要身分的操作全部走 auth 這支 Edge Function（見 backend 的 fn()）。 */
 function sbHeaders(extra){
-  const t = tokenOf();
   return Object.assign({
     apikey: CONFIG.SUPABASE_ANON_KEY,
-    Authorization: "Bearer " + (t || CONFIG.SUPABASE_ANON_KEY)
+    Authorization: "Bearer " + CONFIG.SUPABASE_ANON_KEY
   }, extra || {});
 }
 
@@ -245,45 +251,32 @@ const SB = {
     const rows = await rest("v_post_seats?select=post_id,capacity,reserved_seats,taken,waiting");
     return Object.fromEntries(rows.map(r => [r.post_id, r]));
   },
+  /* ⚠️ 以下三項都需要「你是誰」，一律走 auth 這支 Edge Function。
+        不能打 PostgREST —— 它解不開我們發的 token（見 sbHeaders 的說明）。 */
   async mySignups(){
     if(!tokenOf()) return new Map();
-    const rows = await rest("signups?select=post_id,status,note");
-    return new Map(rows.map(r => [r.post_id, r]));
+    const r = await authApi("my_signups");
+    return new Map((r.signups || []).map(x => [x.post_id, x]));
   },
   async signup(postId, on){
-    if(on) await rpc("join_event", { p_post_id: postId });
-    else   await rpc("leave_event", { p_post_id: postId });
+    const r = await authApi(on ? "signup" : "unsignup", { post_id: postId });
+    if(r.error) throw new Error(r.error);
     return { ok: true };
   },
-  // 所有人的個人資料，已經由資料庫按可見範圍遮好
+  // 所有人的個人資料，已經由資料庫按可見範圍遮好才吐出來
   async profiles(){
-    const rows = await rpc("visible_profiles");
-    return Object.fromEntries(rows.map(r => [r.member_id, r.data || {}]));
+    const r = await authApi("profiles");
+    if(r.error) throw new Error(r.error);
+    return Object.fromEntries((r.profiles || []).map(x => [x.member_id, x.data || {}]));
   },
-  /* 存自己的資料。RLS 保證只能改自己那一列。
-     ⛔ 一定要 return=representation 並檢查回傳筆數。
-        RLS 擋下來時 PATCH 是「成功但影響 0 列」——
-        不檢查的話畫面會顯示「已儲存」，其實什麼都沒寫進去。
-        這種沉默失敗最難查。 */
+  /* 存自己的資料。
+     ⛔ 只送欄位內容，【不送 member_id】—— 身分由 Edge Function
+        從 token 取，前端說了不算。這樣就算有人改前端也改不到別人。 */
   async saveProfile(fields, vis){
     if(!ME) throw new Error("請先登入");
-    const body = Object.assign({}, fields, { vis, updated_at: new Date().toISOString() });
-    const rows = await rest("profiles?member_id=eq." + ME.id, {
-      method: "PATCH",
-      headers: sbHeaders({ "Content-Type": "application/json", Prefer: "return=representation" }),
-      body: JSON.stringify(body)
-    });
-    if(!Array.isArray(rows) || rows.length === 0){
-      throw new Error("資料庫沒有寫進任何一列 —— 通常是登入身分沒被資料庫認可。" +
-                      "請登出再登入一次；若還是這樣，把這句話告訴我。");
-    }
-    return rows[0];
-  },
-  /* 診斷：資料庫「認為」我是誰。
-     前端說已登入、資料庫卻認不出來 —— 這是最容易卡住的一種狀況，
-     所以要有辦法直接問。 */
-  async dbWhoAmI(){
-    const rows = await rest("profiles?select=member_id&limit=1");
-    return { canReadOwnProfile: Array.isArray(rows) ? rows.length : "?" };
+    const r = await authApi("save_profile",
+      { fields: Object.assign({}, fields, { vis }) });
+    if(r.error) throw new Error(r.error);
+    return r;
   }
 };

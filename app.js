@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v2.0　2026-08-30";
+const VERSION = "v2.1　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -1011,16 +1011,26 @@ async function showDbWhoAmI(btn){
   box.style.display = "block";
   box.textContent = "查詢中…";
   const out = {};
-  try{ out.whoami_db = await rpc("whoami_db"); }
-  catch(e){ out.whoami_db_error = e.message; }
-  try{ out.可讀自己的profiles筆數 = (await rest("profiles?select=member_id")).length; }
+  try{ const p = await authApi("ping"); out.伺服器診斷 = p; }
+  catch(e){ out.ping_error = e.message; }
+  try{ const w = await authApi("whoami"); out.後端認得的我 = w.ok ? w.me : "不認得"; }
+  catch(e){ out.whoami_error = e.message; }
+  try{ const pr = await authApi("profiles");
+       out.拿到的個人資料筆數 = (pr.profiles||[]).length;
+       const mine = (pr.profiles||[]).find(x => ME && x.member_id === ME.id);
+       out.我自己的欄位 = mine ? Object.keys(mine.data||{}) : "沒拿到"; }
   catch(e){ out.profiles_error = e.message; }
   out.前端認為的我 = ME ? { id: ME.id, name: ME.name, officer: ME.officer } : null;
   out.最近失敗的請求 = (typeof REQ_LOG !== "undefined" && REQ_LOG.length) ? REQ_LOG : "（沒有）";
   try{
     const t = localStorage.getItem("fcu10_token") || "";
     const payload = t.split(".")[1];
-    out.token內容 = payload ? JSON.parse(atob(payload.replace(/-/g,"+").replace(/_/g,"/"))) : "沒有 token";
+    // ⚠️ atob 出來是 binary string，中文要再過一次 UTF-8 解碼，
+    //    不然「班代」會顯示成亂碼，看起來像資料壞掉其實只是顯示問題。
+    out.token內容 = payload
+      ? JSON.parse(new TextDecoder().decode(
+          Uint8Array.from(atob(payload.replace(/-/g,"+").replace(/_/g,"/")), ch => ch.charCodeAt(0))))
+      : "沒有 token";
   }catch(e){ out.token_error = e.message; }
   box.textContent = JSON.stringify(out, null, 2);
 }
