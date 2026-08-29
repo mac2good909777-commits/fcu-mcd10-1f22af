@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v2.1　2026-08-30";
+const VERSION = "v2.2　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -643,7 +643,7 @@ function memberCard(m){
     <div class="n">${esc(m.name)}${nick ? `<span class="nick">${esc(nick)}</span>` : ""}</div>
     ${co || ti ? `<div class="c">${esc(co || "")}${co && ti ? "<br>" : ""}${esc(ti || "")}</div>` : ""}
     ${head ? `<div class="head">「${esc(head)}」</div>` : ""}
-    ${!anything ? `<div class="c locked">${LOCKED}</div>` : ""}
+    ${!anything ? `<div class="c locked">${m.confirmed === false ? "尚未填寫" : LOCKED}</div>` : ""}
     <div class="pills" style="justify-content:center;margin-top:7px">
       ${tag ? `<span class="pill solid" style="background:${groupColor(m.group)}">${esc(tag)}</span>`
         : ind ? `<span class="pill">${esc(INDUSTRIES[ind] || "")}</span>`
@@ -775,6 +775,13 @@ function render_profile(){
       公司、職稱、學歷<b>已從新生名冊帶入</b>，不對就直接改。<br>
       每一欄右邊可以自己選<b>給誰看</b>，預設是「本屆同學」。
     </div>
+    ${(fullProfile(ME.id).confirmed === false) ? `<div class="notice-lock"
+      style="background:#fff6e5;border-color:#f0d9a8">
+      ⚠️ <b>你的資料目前不會顯示給其他同學。</b><br>
+      名冊帶進來的公司職稱是你當初填給學校的，不是同意公開在這裡的內容，
+      所以<b>要你自己按過一次儲存</b>，才會對同學顯示。<br>
+      看過下面的內容、確認沒問題（或改成你想露出的樣子）再按儲存就好。
+    </div>` : ""}
     <div class="hint" style="margin:0 0 12px">
       ⚠️ 版型階段：改動只存在這台瀏覽器，換一台電腦就不見了。
       正式版會存進資料庫，並且只有你自己改得動自己那一列。

@@ -230,7 +230,8 @@ async function doClaim(id, name){
       不是那一欄變空 —— 所以加欄位時前後端要一起改。            */
 const SB = {
   async members(){
-    const rows = await rest("v_members?select=id,cohort,sort,name,grp,officer,status,claimed&order=sort.asc");
+    // ⚠️ confirmed = 本人確認過資料才會是 true。名冊靠它顯示「尚未填寫」。
+    const rows = await rest("v_members?select=id,cohort,sort,name,grp,officer,status,claimed,confirmed&order=sort.asc");
     // grp → group：前端一路都叫 group，這裡轉一次就好，
     // 不要讓 render 那邊到處判斷兩種名字。
     return rows.map(r => ({ ...r, group: r.grp }));

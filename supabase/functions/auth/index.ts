@@ -322,7 +322,11 @@ Deno.serve(async (req) => {
       const ALLOW = ["nickname","company","title","industry","tag","headline","intro",
                      "resource","wish","topics","edu_bg","web","line_url",
                      "q_why","q_thesis","q_team","vis"];
-      const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+      // ⚠️ confirmed_at 是「本人確認過」的印記。
+      //    沒有它，名冊帶進來的公司職稱不會對其他同學顯示 ——
+      //    那些是同學填給學校的，不是同意公開在班級看板上的。
+      const now = new Date().toISOString();
+      const patch: Record<string, unknown> = { updated_at: now, confirmed_at: now };
       for (const k of ALLOW) if (k in fields) patch[k] = fields[k];
 
       const rows = await db(`profiles?member_id=eq.${meId}`, {
