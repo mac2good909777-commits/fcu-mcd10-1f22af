@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v1.8　2026-08-30";
+const VERSION = "v1.9　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -979,6 +979,17 @@ function render_me(){
         使用時必須標示作者與授權，出處寫在<b>使用說明</b>頁最下面。</div>
     </article>
 
+    ${LIVE && ME ? `
+    <div class="sec"><h2>診斷</h2></div>
+    <article class="card pad">
+      <div class="hint" style="margin-bottom:10px">
+        排錯用的。按下去會問資料庫「你認為我是誰」，把結果整段截圖給我就能定位問題。</div>
+      <div class="actions"><button class="btn btn-ghost btn-sm" onclick="showDbWhoAmI(this)">問資料庫我是誰</button></div>
+      <pre id="dbwho" style="display:none;white-space:pre-wrap;word-break:break-all;
+        background:var(--line-soft);padding:10px;border-radius:8px;margin-top:10px;
+        font-size:.75rem;line-height:1.6"></pre>
+    </article>` : ""}
+
     ${LIVE ? "" : `
     <div class="sec"><h2>版型測試：切換身分</h2></div>
     <article class="card pad">
@@ -990,6 +1001,27 @@ function render_me(){
         <button class="chip${ME&&ME.officer?" on":""}" onclick="loginAs(23)">幹部（班代）</button>
       </div>
     </article>`}`;
+}
+
+/* 問資料庫「你認為我是誰」。
+   前端說已登入、資料庫卻認不出來時，這是唯一能問清楚的方法 ——
+   猜是猜不出來的（我已經猜錯三次）。 */
+async function showDbWhoAmI(btn){
+  const box = el("dbwho");
+  box.style.display = "block";
+  box.textContent = "查詢中…";
+  const out = {};
+  try{ out.whoami_db = await rpc("whoami_db"); }
+  catch(e){ out.whoami_db_error = e.message; }
+  try{ out.可讀自己的profiles筆數 = (await rest("profiles?select=member_id")).length; }
+  catch(e){ out.profiles_error = e.message; }
+  out.前端認為的我 = ME ? { id: ME.id, name: ME.name, officer: ME.officer } : null;
+  try{
+    const t = localStorage.getItem("fcu10_token") || "";
+    const payload = t.split(".")[1];
+    out.token內容 = payload ? JSON.parse(atob(payload.replace(/-/g,"+").replace(/_/g,"/"))) : "沒有 token";
+  }catch(e){ out.token_error = e.message; }
+  box.textContent = JSON.stringify(out, null, 2);
 }
 
 /* ── 班級管理（幹部）──────────────────────────────────────────── */
