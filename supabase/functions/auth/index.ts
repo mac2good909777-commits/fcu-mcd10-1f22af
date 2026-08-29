@@ -8,37 +8,36 @@
 //   login    前端把 LINE 回傳的 code 送來 → 換 LINE 身分 → 發 token
 //   claim    第一次登入時，從名冊挑自己是誰 → 綁定
 //   whoami   用 token 換回自己的身分（重新整理後恢復登入狀態）
+//   ping     診斷用：回報環境變數在不在、資料庫通不通（不吐任何機密）
 //
 // 需要的環境變數（Supabase → Edge Functions → Secrets）：
 //   LINE_CHANNEL_ID       LINE Login channel 的 Channel ID
 //   LINE_CHANNEL_SECRET   同一個 channel 的 Channel secret
-//   SUPABASE_URL          （Supabase 會自動注入）
-//   SUPABASE_SERVICE_ROLE_KEY（Supabase 會自動注入）
-//   JWT_SECRET            Supabase → Settings → API → JWT Secret
+//   JWT_SECRET            Settings → JWT Keys → Legacy JWT Secret
+//   SUPABASE_URL          （Supabase 自動注入）
 //
-// ⛔ CHANNEL_SECRET 與 SERVICE_ROLE_KEY 只能放在這裡（伺服器端）。
-//    這兩個放進前端等於把整個資料庫交出去。
+// ⛔ CHANNEL_SECRET 與 JWT_SECRET 只能放在這裡（伺服器端）。
+//    放進前端等於把整個資料庫與登入權交出去。
+//
+// ⚠️ 這一版【不用 supabase-js，也不依賴 SUPABASE_SERVICE_ROLE_KEY】。
+//    專案遷到新版 API 金鑰（sb_publishable_/sb_secret_）之後，
+//    那個舊環境變數不保證還在，缺了會在第一次查資料庫時 500，
+//    而且錯誤訊息完全看不出原因。
+//    我們手上已經有 JWT_SECRET，直接自己簽一張 role=service_role 的
+//    token 打 PostgREST 就好 —— 少一個相依、少一次冷啟動載入。
 // ═══════════════════════════════════════════════════════════════════
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { create, verify, getNumericDate } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
 
-const LINE_ID     = Deno.env.get("LINE_CHANNEL_ID")!;
-const LINE_SECRET = Deno.env.get("LINE_CHANNEL_SECRET")!;
-const JWT_SECRET  = Deno.env.get("JWT_SECRET")!;
-
-// service_role 會繞過 RLS —— 這支 function 需要它才能寫 line_user_id。
-// ⛔ 用它做的每一次查詢都要自己檢查身分，RLS 幫不了你。
-const admin = createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  { auth: { persistSession: false } },
-);
+const LINE_ID     = Deno.env.get("LINE_CHANNEL_ID") ?? "";
+const LINE_SECRET = Deno.env.get("LINE_CHANNEL_SECRET") ?? "";
+const JWT_SECRET  = Deno.env.get("JWT_SECRET") ?? "";
+const SB_URL      = Deno.env.get("SUPABASE_URL") ?? "";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
-  // ⚠️ 前端如果多送了任何標頭，這裡沒列出來，瀏覽器的預檢就會失敗，
-  //    症狀是「Failed to fetch」而且 curl 測不出來（curl 不做預檢）。
+  // ⚠️ 前端多送任何一個標頭而這裡沒列，瀏覽器預檢就會失敗，
+  //    症狀是 Failed to fetch —— 而且 curl 測不出來（curl 不做預檢）。
   "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
@@ -48,7 +47,7 @@ const json = (body: unknown, status = 200) =>
     headers: { ...cors, "Content-Type": "application/json" },
   });
 
-// JWT 簽章金鑰。PostgREST 用同一把驗，所以 claims 才會進 request.jwt.claims。
+// JWT 簽章金鑰。PostgREST 用同一把驗，所以 claims 才進得了 request.jwt.claims。
 async function key() {
   return await crypto.subtle.importKey(
     "raw",
@@ -59,21 +58,49 @@ async function key() {
   );
 }
 
-// ⚠️ role 一定要是 "authenticated"：PostgREST 是看這個決定用哪組權限的。
-//    漏掉的話所有查詢都會以 anon 身分執行，登入等於沒登入。
+// ⚠️ role 一定要是 "authenticated"：PostgREST 靠這個決定用哪組權限。
+//    漏掉的話所有查詢都以 anon 身分執行，登入等於沒登入。
 async function mintToken(m: { id: number; cohort: number; officer: string }) {
   return await create(
     { alg: "HS256", typ: "JWT" },
     {
       role: "authenticated",
       sub: String(m.id),
-      member_id: String(m.id),      // ⚠️ 存成字串：JSON 的數字經過 jsonb 轉型會出事
+      member_id: String(m.id),      // ⚠️ 存字串：數字經過 jsonb 轉型會出事
       cohort: String(m.cohort),
       officer: m.officer ?? "",
       exp: getNumericDate(60 * 60 * 24 * 30),   // 30 天，在職專班不會天天登入
     },
     await key(),
   );
+}
+
+/* 以 service_role 身分打 PostgREST。
+   ⛔ service_role 會【繞過所有 RLS】。用它做的每一次查詢，
+      條件都要自己寫對 —— RLS 這時候幫不了你。
+   ⚠️ 短效（60 秒）：這張 token 不外流，也沒必要活久。 */
+async function svcToken() {
+  return await create(
+    { alg: "HS256", typ: "JWT" },
+    { role: "service_role", exp: getNumericDate(60) },
+    await key(),
+  );
+}
+async function db(path: string, init: RequestInit = {}) {
+  const t = await svcToken();
+  const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
+    ...init,
+    headers: {
+      apikey: t,
+      Authorization: `Bearer ${t}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+      ...(init.headers ?? {}),
+    },
+  });
+  const text = await r.text();
+  if (!r.ok) throw new Error(`資料庫 ${r.status}：${text.slice(0, 300)}`);
+  return text ? JSON.parse(text) : null;
 }
 
 async function readToken(req: Request) {
@@ -95,6 +122,26 @@ Deno.serve(async (req) => {
   const action = body.action ?? "";
 
   try {
+    // ── 診斷 ──────────────────────────────────────────────────────
+    // ⛔ 只回「有沒有設」與「通不通」，絕不回金鑰內容。
+    if (action === "ping") {
+      let dbOK = "";
+      try {
+        const rows = await db("members?select=id&limit=1");
+        dbOK = `ok(${Array.isArray(rows) ? rows.length : "?"})`;
+      } catch (e) { dbOK = String(e).slice(0, 200); }
+      return json({
+        ok: true,
+        env: {
+          LINE_CHANNEL_ID: LINE_ID ? "set" : "MISSING",
+          LINE_CHANNEL_SECRET: LINE_SECRET ? "set" : "MISSING",
+          JWT_SECRET: JWT_SECRET ? "set" : "MISSING",
+          SUPABASE_URL: SB_URL ? "set" : "MISSING",
+        },
+        db: dbOK,
+      });
+    }
+
     // ── 登入 ──────────────────────────────────────────────────────
     if (action === "login") {
       const { code, redirect_uri } = body;
@@ -120,15 +167,13 @@ Deno.serve(async (req) => {
         headers: { Authorization: `Bearer ${tok.access_token}` },
       });
       const prof = await profRes.json();
-      if (!prof.userId) return json({ error: "拿不到 LINE 身分" }, 400);
+      if (!prof.userId) return json({ error: "拿不到 LINE 身分", detail: prof }, 400);
 
       // 3. 這個 LINE 帳號綁過名冊上的誰嗎
-      const { data: bound } = await admin
-        .from("members")
-        .select("id, cohort, name, officer, grp")
-        .eq("line_user_id", prof.userId)
-        .maybeSingle();
-
+      const boundRows = await db(
+        `members?select=id,cohort,name,officer,grp&line_user_id=eq.${encodeURIComponent(prof.userId)}`,
+      );
+      const bound = boundRows?.[0];
       if (bound) {
         return json({
           ok: true,
@@ -138,13 +183,9 @@ Deno.serve(async (req) => {
         });
       }
 
-      // 4. 還沒綁定 → 回一張「還沒被認領」的名單讓他挑自己是誰。
+      // 4. 還沒綁定 → 回「還沒被認領」的名單讓他挑自己是誰。
       //    ⛔ 只回姓名與組別，不回公司職稱 —— 這時候他還沒通過任何驗證。
-      const { data: open } = await admin
-        .from("members")
-        .select("id, name, grp, sort")
-        .is("line_user_id", null)
-        .order("sort");
+      const open = await db("members?select=id,name,grp,sort&line_user_id=is.null&order=sort.asc");
 
       // claim_ticket 是短效憑證，證明「這個人剛通過 LINE 驗證」。
       // ⛔ 不能讓前端自己送 line_user_id 來認領 ——
@@ -174,34 +215,41 @@ Deno.serve(async (req) => {
       }
       if (t.purpose !== "claim") return json({ error: "憑證不對" }, 401);
 
-      // ⚠️ 這裡的 is null 是關鍵：兩個人同時認領同一個名字，
-      //    第二個人會因為條件不成立而拿到 0 筆，不會蓋掉第一個人。
-      const { data: taken, error } = await admin
-        .from("members")
-        .update({ line_user_id: t.line_user_id, claimed_at: new Date().toISOString() })
-        .eq("id", member_id)
-        .is("line_user_id", null)
-        .select("id, cohort, name, officer, grp")
-        .maybeSingle();
-
-      if (error) return json({ error: error.message }, 400);
-      if (!taken) return json({ error: "這個名字已經被別人認領了，請找幹部處理" }, 409);
+      // ⚠️ 網址條件裡的 line_user_id=is.null 是關鍵：
+      //    兩個人同時認領同一個名字，第二個會因為條件不成立而拿到 0 筆，
+      //    不會蓋掉第一個人。
+      const taken = await db(
+        `members?id=eq.${Number(member_id)}&line_user_id=is.null`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            line_user_id: t.line_user_id,
+            claimed_at: new Date().toISOString(),
+          }),
+          headers: { Prefer: "return=representation" },
+        },
+      );
+      const me = taken?.[0];
+      if (!me) return json({ error: "這個名字已經被別人認領了，請找幹部處理" }, 409);
 
       // 認領完順手建一列空的個人資料，之後直接 update 就好
-      await admin.from("profiles").upsert({ member_id: taken.id }, { onConflict: "member_id" });
+      await db("profiles?on_conflict=member_id", {
+        method: "POST",
+        body: JSON.stringify({ member_id: me.id }),
+        headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      });
 
-      return json({ ok: true, token: await mintToken(taken), me: taken });
+      return json({ ok: true, token: await mintToken(me), me });
     }
 
     // ── 重新整理後恢復登入 ────────────────────────────────────────
     if (action === "whoami") {
       const c = await readToken(req);
       if (!c) return json({ ok: false });
-      const { data: m } = await admin
-        .from("members")
-        .select("id, cohort, name, officer, grp")
-        .eq("id", Number(c.member_id))
-        .maybeSingle();
+      const rows = await db(
+        `members?select=id,cohort,name,officer,grp&id=eq.${Number(c.member_id)}`,
+      );
+      const m = rows?.[0];
       if (!m) return json({ ok: false });
       // ⚠️ 重新簽一次：幹部換人時，舊 token 裡的 officer 還是舊的。
       return json({ ok: true, token: await mintToken(m), me: m });
@@ -211,17 +259,19 @@ Deno.serve(async (req) => {
     if (action === "unbind") {
       const c = await readToken(req);
       if (!c || !c.officer) return json({ error: "只有幹部可以做這件事" }, 403);
-      const { error } = await admin
-        .from("members")
-        .update({ line_user_id: null, claimed_at: null })
-        .eq("id", Number(body.member_id));
-      if (error) return json({ error: error.message }, 400);
+      await db(`members?id=eq.${Number(body.member_id)}`, {
+        method: "PATCH",
+        body: JSON.stringify({ line_user_id: null, claimed_at: null }),
+        headers: { Prefer: "return=minimal" },
+      });
       return json({ ok: true });
     }
 
     return json({ error: "不認得的動作" }, 400);
   } catch (e) {
+    // ⚠️ 把真正的錯誤講出來。之前只回一句「伺服器錯誤」，
+    //    結果查了一輪才知道是哪一段掛掉。
     console.error(e);
-    return json({ error: String(e) }, 500);
+    return json({ error: "伺服器出錯", detail: String(e).slice(0, 300) }, 500);
   }
 });

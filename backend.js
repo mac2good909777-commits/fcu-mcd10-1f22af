@@ -52,8 +52,13 @@ async function authApi(action, body){
     method: "POST", headers: h,
     body: JSON.stringify(Object.assign({ action }, body || {}))
   });
-  if(!r.ok && r.status >= 500) throw new Error("伺服器錯誤 " + r.status);
-  return r.json();
+  // ⚠️ 500 也要把 body 讀出來 —— 伺服器有回原因，
+  //    只丟一句「伺服器錯誤 500」等於把線索丟掉。
+  const text = await r.text();
+  let data = null;
+  try{ data = text ? JSON.parse(text) : null; }catch(e){}
+  if(!r.ok && !data) throw new Error("伺服器錯誤 " + r.status + "：" + text.slice(0, 200));
+  return data;
 }
 
 /* ── LINE 登入 ───────────────────────────────────────────────────
