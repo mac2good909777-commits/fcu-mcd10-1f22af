@@ -144,15 +144,22 @@ img{max-width:100%}
 .chip.on{background:var(--p-700);color:#fff;border-color:var(--p-700)}
 
 /* ── 同學卡 ─────────────────────────── */
-.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+/* ⚠️ 固定三欄，不用 auto-fill。
+   auto-fill 在 760px 版心裡會塞成四欄，每張卡只剩 ~170px，
+   公司名幾乎每一個都斷行（「太子建設開發股份有／限公司」），
+   讀起來比資訊少還糟。三欄 + 名冊頁加寬才夠放一行公司名。 */
+.mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .mcard{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
-  padding:14px 12px;text-align:center;cursor:pointer;box-shadow:var(--shadow);transition:.15s;position:relative}
+  padding:16px 14px;text-align:center;cursor:pointer;box-shadow:var(--shadow);transition:.15s;
+  position:relative;display:flex;flex-direction:column}
 .mcard:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(45,20,24,.13)}
 .ava{width:56px;height:56px;border-radius:50%;margin:0 auto 8px;display:grid;place-items:center;
   font-weight:800;font-size:1.15rem;color:#fff;background:var(--p-500)}
 .ava.lg{width:76px;height:76px;font-size:1.5rem}
 .mcard .n{font-weight:800;font-size:.98rem}
-.mcard .c{font-size:.78rem;color:var(--muted);margin-top:2px;line-height:1.4}
+.mcard .c{font-size:.8rem;color:var(--muted);margin-top:3px;line-height:1.55}
+/* 標籤永遠貼在卡片底部，卡片高度不一也對得齊 */
+.mcard .pills{margin-top:auto;padding-top:9px}
 .mcard .of{position:absolute;top:8px;right:8px;font-size:.66rem;font-weight:800;
   background:var(--c-orange);color:#fff;padding:2px 7px;border-radius:999px}
 .mcard.dim{opacity:.62}
@@ -301,6 +308,9 @@ img{max-width:100%}
   .top .burger{display:none}
   .deskonly{display:flex}
   .hero{height:270px}
+  /* 名冊是網格，比純文字頁需要更多寬度；其他頁維持 760 好閱讀 */
+  #v-members{max-width:1000px}
+  #v-members .hero{margin-left:-14px;margin-right:-14px}
 }
 /* ── 行事曆 ─────────────────────────── */
 .calrow{display:flex;gap:11px;align-items:flex-start;padding:11px 14px;
@@ -479,13 +489,13 @@ img{max-width:100%}
 <!-- ⚠️ 每支 js 後面的 ?v= 是快取破解用的。
      GitHub Pages 會讓瀏覽器把 js 快取住，不加這個的話我改了東西，
      同學那邊還是舊版，而且看不出來 —— 每次改版把 v 一起換掉。 -->
-<script src="assets/qrcode.js?v=23"></script>
-<script src="config.js?v=23"></script>
-<script src="school.js?v=23"></script>
-<script src="data.js?v=23"></script>
+<script src="assets/qrcode.js?v=24"></script>
+<script src="config.js?v=24"></script>
+<script src="school.js?v=24"></script>
+<script src="data.js?v=24"></script>
 <!-- private.js 已於 2026-08-29 刪除：公司職稱改由資料庫按可見範圍吐出。
      ⛔ 不要為了「本機測試方便」把它加回來 —— 那等於再開一個公開的個資副本。 -->
-<script src="backend.js?v=23"></script>
-<script src="app.js?v=23"></script>
+<script src="backend.js?v=24"></script>
+<script src="app.js?v=24"></script>
 </body>
 </html>

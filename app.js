@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v2.3　2026-08-30";
+const VERSION = "v2.4　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -650,10 +650,10 @@ function memberCard(m){
     ${co || ti ? `<div class="c">${esc(co || "")}${co && ti ? "<br>" : ""}${esc(ti || "")}</div>` : ""}
     ${head ? `<div class="head">「${esc(head)}」</div>` : ""}
     ${!anything ? `<div class="c locked">${m.confirmed === false ? "尚未填寫" : LOCKED}</div>` : ""}
-    <div class="pills" style="justify-content:center;margin-top:7px">
-      ${tag ? `<span class="pill solid" style="background:${groupColor(m.group)}">${esc(tag)}</span>`
-        : ind ? `<span class="pill">${esc(INDUSTRIES[ind] || "")}</span>`
-        : `<span class="pill"><span class="gdot" style="background:${groupColor(m.group)}"></span>${esc((GROUPS[m.group]||{}).short||"")}</span>`}
+    <div class="pills" style="justify-content:center">
+      ${tag ? `<span class="pill solid" style="background:${groupColor(m.group)}">${esc(tag)}</span>` : ""}
+      ${ind ? `<span class="pill">${esc(INDUSTRIES[ind] || "")}</span>` : ""}
+      ${!tag && !ind ? `<span class="pill"><span class="gdot" style="background:${groupColor(m.group)}"></span>${esc((GROUPS[m.group]||{}).short||"")}</span>` : ""}
       ${statusPill(m)}
     </div>
   </div>`;
