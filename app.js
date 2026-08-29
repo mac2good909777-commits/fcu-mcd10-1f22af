@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v1.5　2026-08-30";
+const VERSION = "v1.6　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -1009,7 +1009,7 @@ function render_admin(){
         <b>${t}</b><div class="hint">${d}</div></article>`).join("")}`}`;
 }
 
-/* ── 重要行事曆 ────────────────────────────────────────────────────
+/* ── 行事曆 ────────────────────────────────────────────────────
    資料在 school.js（逢甲 115 學年度行事曆）。
    ⚠️ 一定要標出處與「以註冊課務組公告為準」——
       學校會改行事曆，同學若把這裡當唯一依據而錯過退選，那是我們的錯。 */
@@ -1034,7 +1034,7 @@ function render_calendar(){
   const days = d => Math.round((new Date(d) - new Date(today)) / 86400000);
 
   el("v-calendar").innerHTML = `
-    <div class="sec"><h2>重要行事曆</h2></div>
+    <div class="sec"><h2>行事曆</h2></div>
 
     ${nextOff ? `<article class="card bigcard">
       <div class="band">
@@ -1127,7 +1127,7 @@ function adminCalendarHTML(today, next){
     </article>`;
 }
 
-/* ── 重要課程資訊 ────────────────────────────────────────────────
+/* ── 課程資訊 ────────────────────────────────────────────────
    ⛔ 只放會變動的東西。招生簡章上的畢業學分、課程結構、三組方向、
       教育目標、核心能力都拿掉了 —— 同學考進來時就看過，
       在這裡重印只會把真正要看的東西往下推。要查的人給連結就夠。 */
@@ -1223,7 +1223,7 @@ function render_help(){
 /* ── 導覽 ──────────────────────────────────────────────────────── */
 const VIEWS = ["home","notices","acts","calendar","courses","members","mdetail","profile","claim","needs","ndetail","album","pdetail","me","admin","help"];
 const NAV_TITLES = { home:"首頁", notices:"公告", acts:"活動",
-  calendar:"重要行事曆", courses:"重要課程資訊", members:"同學名冊",
+  calendar:"行事曆", courses:"課程資訊", members:"同學名冊",
   needs:"資源交流", album:"相簿", me:"我的", admin:"班級管理", help:"使用說明" };
 
 function render(v){
