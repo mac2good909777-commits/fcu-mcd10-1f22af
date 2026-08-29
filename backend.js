@@ -23,13 +23,27 @@ function sbHeaders(extra){
   }, extra || {});
 }
 
+/* 失敗的請求留一份紀錄，診斷面板會顯示。
+   ⛔ 不要靜靜地失敗 —— 這整輪除錯之所以拖這麼久，
+      就是因為錯誤被吞掉、被覆蓋、被自動「處理」掉。 */
+const REQ_LOG = [];
+function logFail(path, status, body){
+  REQ_LOG.unshift({ path: path.slice(0, 80), status, body: (body || "").slice(0, 200) });
+  REQ_LOG.length = Math.min(REQ_LOG.length, 8);
+}
+
 async function rest(path, init){
   const r = await fetch(CONFIG.SUPABASE_URL + "/rest/v1/" + path,
     Object.assign({ headers: sbHeaders(init && init.body ? {"Content-Type":"application/json"} : null) }, init));
   if(!r.ok){
     const msg = await r.text();
-    // 401 幾乎都是 token 過期。清掉重登比留著一個壞 token 讓每個動作都失敗好。
-    if(r.status === 401 && tokenOf()){ setToken(""); }
+    logFail(path, r.status, msg);
+    /* ⛔ 【不要】在這裡自動清掉 token。
+       原本 401 就把 token 刪掉，想法是「壞掉的 token 不如重登」，
+       但實際後果是：登入成功 → 某個查詢 401 → token 被刪 →
+       畫面還顯示已登入（ME 還在記憶體）→ 重新整理就變登出，
+       而且真正的錯誤證據被一起銷毀，完全查不出原因。
+       token 該不該作廢由 whoami 決定，不是由任何一個查詢的失敗決定。 */
     throw new Error("讀取失敗 " + r.status + "：" + msg.slice(0, 200));
   }
   return r.status === 204 ? null : r.json();

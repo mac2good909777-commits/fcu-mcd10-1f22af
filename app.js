@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v1.9　2026-08-30";
+const VERSION = "v2.0　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -1016,6 +1016,7 @@ async function showDbWhoAmI(btn){
   try{ out.可讀自己的profiles筆數 = (await rest("profiles?select=member_id")).length; }
   catch(e){ out.profiles_error = e.message; }
   out.前端認為的我 = ME ? { id: ME.id, name: ME.name, officer: ME.officer } : null;
+  out.最近失敗的請求 = (typeof REQ_LOG !== "undefined" && REQ_LOG.length) ? REQ_LOG : "（沒有）";
   try{
     const t = localStorage.getItem("fcu10_token") || "";
     const payload = t.split(".")[1];
