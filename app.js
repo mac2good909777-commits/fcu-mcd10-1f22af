@@ -14,7 +14,7 @@
    解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
    換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
    ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
-const CSS_V = "64";
+const CSS_V = "65";
 (function fixStaleCss(){
   if(document.documentElement.dataset.cssv === CSS_V) return;
   // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
@@ -27,7 +27,7 @@ const CSS_V = "64";
   location.replace(location.pathname + "?r=" + CSS_V);
 })();
 
-const VERSION = "v6.4　2026-08-30";
+const VERSION = "v6.5　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -494,10 +494,10 @@ function render_home(){
 
 function noticeCard(p){
   return `<article class="card pad" onclick="openPost(${p.id})" style="cursor:pointer">
-    ${p.important || visPill(p) ? `<div class="pills" style="margin-bottom:6px">${
-      p.important ? `<span class="pill warn">重要</span>` : ""}${visPill(p)}</div>` : ""}
+    ${p.important || visPill(p) || rolePill(p.author_id) ? `<div class="pills" style="margin-bottom:6px">${
+      rolePill(p.author_id)}${p.important ? `<span class="pill warn">重要</span>` : ""}${visPill(p)}</div>` : ""}
     <b style="${p.important ? "color:var(--c-red)" : ""}">${esc(p.title)}</b>
-    <div class="hint">${esc(nameOf(p.author_id))}　${twDate(p.created_at)}</div>
+    <div class="hint">${byline(p)}</div>
   </article>`;
 }
 
@@ -516,6 +516,7 @@ function render_notices(){
 function surveyCard(p){
   return `<article class="card pad" onclick="openPost(${p.id})" style="cursor:pointer">
     <div class="pills" style="margin-bottom:6px">
+      ${rolePill(p.author_id)}
       <span class="pill solid" style="background:var(--c-sky)">問卷</span>
       ${p.required ? `<span class="pill warn">必填</span>` : ""}
       ${p.deadline ? `<span class="pill">${esc(p.deadline)} 截止</span>` : ""}
@@ -523,7 +524,7 @@ function surveyCard(p){
     </div>
     <b>${esc(p.title)}</b>
     <div class="hint">已完成 ${p.done_count || 0} / ${activeCount()} 人
-      ・${esc(nameOf(p.author_id))}</div>
+      ・${byline(p)}</div>
   </article>`;
 }
 
@@ -556,6 +557,7 @@ function eventCard(p){
   const left = seatsLeft(p.id);
   return `<article class="card pad" onclick="openPost(${p.id})" style="cursor:pointer">
     <div class="pills" style="margin-bottom:7px">
+      ${rolePill(p.author_id)}
       <span class="pill solid" style="background:var(--p-700)">${esc(p.org || "班級")}</span>
       ${isToday(p.event_at) ? `<span class="pill ok">今天</span>` : ""}
       ${p.signup_open ? (left === 0 ? `<span class="pill warn">已額滿</span>`
@@ -597,7 +599,7 @@ function render_pdetail(){
         ${p.speaker  ? `<dt>${esc(p.speaker_title || "講者")}</dt><dd>${esc(p.speaker)}</dd>` : ""}
         ${p.fee      ? `<dt>費用</dt><dd>${esc(p.fee)}</dd>` : ""}
         ${p.deadline ? `<dt>截止</dt><dd>${esc(p.deadline)}</dd>` : ""}
-        <dt>發布</dt><dd>${esc(nameOf(p.author_id))}　${twDate(p.created_at)}</dd>
+        <dt>發布</dt><dd>${byline(p)}</dd>
       </dl>
       <div class="bodytext">${esc(p.body || "")}</div>
       ${p.link ? `<div class="actions" style="margin-top:14px">
@@ -1029,6 +1031,19 @@ function render_needs(){
 /* 公開的東西要看得出來是公開的 ——
    發文的人才會知道自己剛剛把什麼推到了全網際網路上。
    班內限定是預設值，不用特別標，標了到處都是徽章反而看不到重點。 */
+/* 公告是誰發的很重要 —— 財務說要收班費，跟一般同學說要收班費是兩回事。
+   幹部發的一律把職務標出來，讓人一眼看出這則有沒有分量。
+   ⛔ 不要只寫名字：全班五十個人，記不住誰是財務。 */
+function roleOf(id){ return (memberOf(id) || {}).officer || ""; }
+function rolePill(id){
+  const r = roleOf(id);
+  return r ? `<span class="pill role">${esc(r)}</span>` : "";
+}
+function byline(p){
+  const r = roleOf(p.author_id);
+  return `${r ? `<b style="color:var(--c-orange)">${esc(r)}</b>　` : ""}${
+    esc(nameOf(p.author_id))}　${twDate(p.created_at)}`;
+}
 function visPill(x){
   return x?.visibility === "public"
     ? `<span class="pill open">🌐 公開</span>` : "";
