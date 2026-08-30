@@ -187,9 +187,12 @@ begin
   end loop;
 end $$;
 
--- ── 組代表改用完整組名 ─────────────────────────────────────────────
--- ⚠️ 前端 OFFICER_DESC 與排序是用 officer 這個字串當 key 對應，
---    資料庫沒一起改，說明就會對不上而不顯示。
-update public.members set officer = '不動產經營管理組代'       where officer = '不動產組代';
-update public.members set officer = '國土城鄉規劃與運輸管理組代' where officer = '國土運輸組代';
-update public.members set officer = '智慧城市與營建防災組代'     where officer = '智慧防災組代';
+-- ── 組代表用短名 ─────────────────────────────────────────────────
+-- 2026-08-30 改回短名：完整組名「國土城鄉規劃與運輸管理組代」十三個字，
+-- 名冊卡片上的徽章會撐成兩三行，把旁邊的資料擠掉。
+-- ⚠️ 前端 OFFICER_DESC 與排序用 officer 這個字串當 key，
+--    資料庫沒一起改，說明就會對不上而不顯示 —— 兩邊必須同步。
+--    完整組名在 OFFICER_DESC 的說明文字裡已經寫出來了。
+update public.members set officer = '不動產組代'   where officer = '不動產經營管理組代';
+update public.members set officer = '國土運輸組代' where officer = '國土城鄉規劃與運輸管理組代';
+update public.members set officer = '智慧防災組代' where officer = '智慧城市與營建防災組代';

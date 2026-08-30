@@ -65,7 +65,7 @@ const INDUSTRY_SUGGEST = [
    ⚠️ 每個職務配一句說明 —— 同學看到「學務」不會知道那是找誰做什麼。
       寫成「有事找誰」而不是抽象的職掌，這樣才有用。 */
 const OFFICER_ORDER = ["班代","副班代","學務","總務","財務","公關","活動",
-                       "不動產經營管理組代","國土城鄉規劃與運輸管理組代","智慧城市與營建防災組代"];
+                       "不動產組代","國土運輸組代","智慧防災組代"];
 
 const OFFICER_DESC = {
   "班代":     "對外代表班級，跟學程辦公室與師長聯繫；班上有事第一個找他。",
@@ -75,9 +75,9 @@ const OFFICER_DESC = {
   "財務":     "班費收支與帳目；繳費、報帳找他。",
   "公關":     "對外聯繫與跨屆交流，活動的邀請與宣傳。",
   "活動":     "聚餐、參訪、班遊的規劃與現場執行。",
-  "不動產經營管理組代":   "不動產經營管理組的窗口，該組的通知與意見彙整。",
-  "國土城鄉規劃與運輸管理組代": "國土城鄉規劃與運輸管理組的窗口。",
-  "智慧城市與營建防災組代": "智慧城市與營建防災組的窗口。"
+  "不動產組代":   "不動產經營管理組的窗口，該組的通知與意見彙整。",
+  "國土運輸組代": "國土城鄉規劃與運輸管理組的窗口。",
+  "智慧防災組代": "智慧城市與營建防災組的窗口。"
 };
 
 /* status: ""＝在學　"leave"＝休學　"leave_active"＝休學但仍參與班上活動 */
@@ -88,7 +88,7 @@ const MOCK_MEMBERS = [
   { id:4, sort:104, group:"re", name:"林家德", officer:"", status:"" },
   { id:5, sort:105, group:"re", name:"施潔伶", officer:"", status:"" },
   { id:6, sort:106, group:"re", name:"李志銓", officer:"", status:"" },
-  { id:7, sort:107, group:"re", name:"陳夙貞", officer:"不動產經營管理組代", status:"" },
+  { id:7, sort:107, group:"re", name:"陳夙貞", officer:"不動產組代", status:"" },
   { id:8, sort:108, group:"re", name:"陳鈺芬", officer:"", status:"" },
   { id:9, sort:109, group:"re", name:"楊秉樺", officer:"", status:"" },
   { id:10, sort:110, group:"re", name:"吳弈均", officer:"", status:"" },
@@ -115,7 +115,7 @@ const MOCK_MEMBERS = [
   { id:31, sort:214, group:"land", name:"陳其君", officer:"", status:"" },
   { id:32, sort:215, group:"land", name:"林秉賢", officer:"", status:"" },
   { id:33, sort:216, group:"land", name:"李牧襄", officer:"", status:"" },
-  { id:34, sort:217, group:"land", name:"張新華", officer:"國土城鄉規劃與運輸管理組代", status:"" },
+  { id:34, sort:217, group:"land", name:"張新華", officer:"國土運輸組代", status:"" },
   { id:35, sort:218, group:"land", name:"鄭予嘉", officer:"", status:"" },
   { id:36, sort:219, group:"land", name:"陳紀安", officer:"", status:"" },
   { id:37, sort:220, group:"land", name:"吳偉如", officer:"", status:"" },
@@ -125,7 +125,7 @@ const MOCK_MEMBERS = [
   { id:41, sort:224, group:"land", name:"謝庭振", officer:"", status:"leave_active" },
   { id:42, sort:301, group:"smart", name:"呂宣", officer:"", status:"" },
   { id:43, sort:302, group:"smart", name:"吳佳玲", officer:"財務", status:"" },
-  { id:44, sort:303, group:"smart", name:"黃程豐", officer:"智慧城市與營建防災組代", status:"" },
+  { id:44, sort:303, group:"smart", name:"黃程豐", officer:"智慧防災組代", status:"" },
   { id:45, sort:304, group:"smart", name:"梁逸輝", officer:"", status:"" },
   { id:46, sort:305, group:"smart", name:"郭家興", officer:"", status:"" },
   { id:47, sort:306, group:"smart", name:"劉又菁", officer:"", status:"" },
