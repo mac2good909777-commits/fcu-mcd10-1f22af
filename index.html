@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-TW" data-cssv="61">
+<html lang="zh-TW" data-cssv="62">
 <head>
 <meta charset="UTF-8">
 <meta name="robots" content="noindex, nofollow">
@@ -464,6 +464,11 @@ img{max-width:100%}
 .offname{font-weight:800;font-size:.95rem;margin-bottom:2px}
 /* 職務說明與人名分成兩塊：先知道該找哪個職務，再去找人。
    兩欄排 —— 十二列一路往下拉，首頁會長到看不到底下的東西。 */
+/* 招募下一任幹部的那句話。用淡底色跟上面的說明分開 ——
+   混在灰色小字裡沒人會讀到，那句話就白寫了。 */
+.joinnote{background:#fff6e5;border:1px solid #f3dcb0;border-radius:var(--r-sm);
+  padding:10px 13px;margin-bottom:12px;font-size:.85rem;line-height:1.75;color:var(--ink)}
+.joinnote b{color:var(--p-700)}
 .dutygrid,.offgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .duty{background:var(--card);border:1px solid var(--line);border-radius:var(--r-sm);
   padding:10px 12px;display:flex;gap:10px;align-items:flex-start}
@@ -646,14 +651,14 @@ img{max-width:100%}
 <!-- ⚠️ 每支 js 後面的 ?v= 是快取破解用的。
      GitHub Pages 會讓瀏覽器把 js 快取住，不加這個的話我改了東西，
      同學那邊還是舊版，而且看不出來 —— 每次改版把 v 一起換掉。 -->
-<script src="config.js?v=61"></script>
-<script src="school.js?v=61"></script>
-<script src="faculty.js?v=61"></script>
-<script src="data.js?v=61"></script>
+<script src="config.js?v=62"></script>
+<script src="school.js?v=62"></script>
+<script src="faculty.js?v=62"></script>
+<script src="data.js?v=62"></script>
 <!-- private.js 已於 2026-08-29 刪除：公司職稱改由資料庫按可見範圍吐出。
      ⛔ 不要為了「本機測試方便」把它加回來 —— 那等於再開一個公開的個資副本。 -->
-<script src="backend.js?v=61"></script>
-<script src="app.js?v=61"></script>
-<script src="forms.js?v=61"></script>
+<script src="backend.js?v=62"></script>
+<script src="app.js?v=62"></script>
+<script src="forms.js?v=62"></script>
 </body>
 </html>

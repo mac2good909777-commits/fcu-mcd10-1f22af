@@ -14,7 +14,7 @@
    解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
    換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
    ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
-const CSS_V = "61";
+const CSS_V = "62";
 (function fixStaleCss(){
   if(document.documentElement.dataset.cssv === CSS_V) return;
   // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
@@ -27,7 +27,7 @@ const CSS_V = "61";
   location.replace(location.pathname + "?r=" + CSS_V);
 })();
 
-const VERSION = "v6.1　2026-08-30";
+const VERSION = "v6.2　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -455,6 +455,9 @@ function render_home(){
 
     <div class="sec"><h2>幹部職務</h2></div>
     <div class="hint" style="margin-bottom:10px">先看事情該找哪個職務，再去找人。</div>
+    <div class="joinnote">在職專班來的不只是學位，還有人脈 ——
+      <b>做幹部是最快把全班認識一輪的方式</b>，也最容易跟師長與其他屆搭上線。
+      下一任改選時，歡迎接手其中一個位子。</div>
     <div class="dutygrid">
       ${OFFICER_ORDER.filter(o => OFFICER_DESC[o]).map(o => `<div class="duty">
         <div class="offbadge">${esc(o)}</div>
