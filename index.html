@@ -425,7 +425,13 @@ img{max-width:100%}
   background:var(--line-soft);padding:1px 6px;border-radius:999px}
 .pairrow{display:grid;grid-template-columns:1.6fr 1fr;gap:8px}
 @media (max-width:520px){ .pairrow{grid-template-columns:1fr;gap:6px} }
-.vissel{margin-left:auto;width:auto!important;font-size:.72rem!important;padding:3px 6px!important;
+/* ⚠️ 下拉前面一定要有「給誰看」三個字。
+   之前只有一個孤零零的下拉寫著「本屆同學」，沒人知道那是什麼 ——
+   選單本身不會解釋自己。 */
+.vislabel{margin-left:auto;font-size:.7rem;font-weight:600;color:var(--muted)}
+.vissel-demo{display:inline-block;font-size:.72rem;padding:2px 8px;border-radius:999px;
+  background:var(--line-soft);color:var(--muted);font-weight:600}
+.vissel{margin-left:6px;width:auto!important;font-size:.72rem!important;padding:3px 6px!important;
   border-radius:999px!important;color:var(--muted);background:var(--line-soft)!important;
   border:none!important;font-weight:600;cursor:pointer}
 /* 媒合的關鍵欄位：視覺上要比其他欄重 */
@@ -533,13 +539,13 @@ img{max-width:100%}
 <!-- ⚠️ 每支 js 後面的 ?v= 是快取破解用的。
      GitHub Pages 會讓瀏覽器把 js 快取住，不加這個的話我改了東西，
      同學那邊還是舊版，而且看不出來 —— 每次改版把 v 一起換掉。 -->
-<script src="config.js?v=44"></script>
-<script src="school.js?v=44"></script>
-<script src="faculty.js?v=44"></script>
-<script src="data.js?v=44"></script>
+<script src="config.js?v=45"></script>
+<script src="school.js?v=45"></script>
+<script src="faculty.js?v=45"></script>
+<script src="data.js?v=45"></script>
 <!-- private.js 已於 2026-08-29 刪除：公司職稱改由資料庫按可見範圍吐出。
      ⛔ 不要為了「本機測試方便」把它加回來 —— 那等於再開一個公開的個資副本。 -->
-<script src="backend.js?v=44"></script>
-<script src="app.js?v=44"></script>
+<script src="backend.js?v=45"></script>
+<script src="app.js?v=45"></script>
 </body>
 </html>

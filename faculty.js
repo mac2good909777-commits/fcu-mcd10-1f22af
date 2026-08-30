@@ -11,9 +11,14 @@
       所以專長欄要能搜尋 —— 這一頁的搜尋框搜的是專長，不是只有姓名。
 
    ⚠️ fcuId 是學程官網的老師編號（teachers-detail/?id=…&unit_id=CD16）。
-      只有部分老師有 —— 學程師資頁只列 12 位，其餘老師掛在土木、水利等
-      其他系所，官網上沒有對應的個人頁。
-      沒有 fcuId 的就連到逢甲網站搜尋，讓使用者自己看有沒有 ——
+      ⛔ 取完整名單的方法：師資頁預設分頁是 JS 載入的，直接抓 offset
+         只會一直拿到第一頁的 12 位。要改用【職稱篩選 + limit=99】：
+           /teachers/?offset=0&limit=99&job_title=Associate+Professor
+         把每個職稱各抓一次才會完整（2026-08-30 這樣抓到 34 位）。
+      ⚠️ 老師分散在不同系所網站，所以除了 fcuId 還要記 fcuUnit 與 fcuHost：
+           mcd（本學程 CD16）、civil（土木 CE01）、he（水利 CE02）、lm（土管 CM03）
+         沒寫 fcuHost 的預設是 mcd/CD16。
+      沒有 fcuId 的（官網上查不到個人頁）就連到網站搜尋。
       ⛔ 不要用猜的編號組連結，點進去是別的老師比沒有連結更糟。
 
    ⚠️ 手冊上印的就照抄，包含看起來像筆誤的地方（例如 mctasi@），
@@ -68,19 +73,19 @@ const FACULTY_FULL = [
   { rank:2, title:"副教授", name:"楊賀雯", fcuId:"T97053", edu:"英國威爾斯卡地夫大學都市及區域規劃學院博士",
     field:"不動產市場分析／不動產經營與管理／多變量分析／地方產業發展",
     ext:"4707", email:"hwyang@o365.fcu.edu.tw" },
-  { rank:2, title:"副教授", name:"劉曜華", edu:"美國佛羅里達大學都市計畫所博士",
+  { rank:2, title:"副教授", name:"劉曜華", fcuId:"T83115", edu:"美國佛羅里達大學都市計畫所博士",
     field:"都市成長管理／都市規劃史／發展理論／都市規劃／文化產業",
     ext:"3370", email:"yhliou@o365.fcu.edu.tw、yhliou.liou@gmail.com" },
-  { rank:2, title:"副教授", name:"葉昭甫", edu:"東巴黎大學經濟／管理與區域研究學院博士",
+  { rank:2, title:"副教授", name:"葉昭甫", fcuId:"T01089", edu:"東巴黎大學經濟／管理與區域研究學院博士",
     field:"運輸規劃／運輸經濟／運輸政策／市區道路工程設計／智慧型運輸系統",
     ext:"4681", email:"cfyeh@o365.fcu.edu.tw" },
   { rank:2, title:"副教授", name:"朱南玉", fcuId:"T93117", edu:"台北大學都市計畫研究所博士",
     field:"不動產估價／不動產投資／土地使用管制／都市與區域規劃／土地稅／計量分析",
     ext:"4716", email:"nychu@o365.fcu.edu.tw" },
-  { rank:2, title:"副教授", name:"林威延", edu:"臺灣大學土木工程學系博士",
+  { rank:2, title:"副教授", name:"林威延", fcuId:"T99121", fcuUnit:"CE01", fcuHost:"civil", edu:"臺灣大學土木工程學系博士",
     field:"地理資訊系統 GIS／營建管理／工程資訊管理／行動運算技術／空間資訊整合應用技術／營建資訊模擬",
     ext:"3100、3117", email:"weiylin@o365.fcu.edu.tw" },
-  { rank:2, title:"副教授", name:"林喻峰", edu:"國立中興大學土木工程學系博士",
+  { rank:2, title:"副教授", name:"林喻峰", fcuId:"T12039", fcuUnit:"CE01", fcuHost:"civil", edu:"國立中興大學土木工程學系博士",
     field:"非破壞檢測技術／鋼筋混凝土／結構力學實驗／電腦輔助工程",
     ext:"3111", email:"yufeng@fcu.edu.tw" },
   { rank:2, title:"副教授", name:"徐逸祥", fcuId:"T02194", edu:"臺灣大學地理環境資源研究所博士",
@@ -92,13 +97,13 @@ const FACULTY_FULL = [
   { rank:2, title:"副教授", name:"郭仲偉", edu:"國立台灣大學土木工程學系博士",
     field:"運輸規劃與管理／運輸需求分析／航空運輸",
     ext:"4664", email:"d91521007@ntu.edu.tw" },
-  { rank:2, title:"副教授", name:"林大傑", edu:"美國加州大學柏克萊分校土木及環境工程系博士",
+  { rank:2, title:"副教授", name:"林大傑", fcuId:"T91157", edu:"美國加州大學柏克萊分校土木及環境工程系博士",
     field:"運輸規劃與管理／智慧型運輸系統／全球運籌管理／電子商務／交通改善方案之研擬與評估",
     ext:"4670", email:"dajielin@o365.fcu.edu.tw" },
-  { rank:2, title:"副教授", name:"葉美伶", edu:"逢甲大學土木及水利博士學位學程博士",
+  { rank:2, title:"副教授", name:"葉美伶", fcuId:"T89036", edu:"逢甲大學土木及水利博士學位學程博士",
     field:"地理資訊系統／遙感探測／土地管理／專案管理／智慧城市",
     ext:"4583", email:"mlyeh@o365.fcu.edu.tw" },
-  { rank:2, title:"副教授", name:"方耀民", edu:"逢甲大學土木及水利工程研究所博士",
+  { rank:2, title:"副教授", name:"方耀民", fcuId:"T91144", edu:"逢甲大學土木及水利工程研究所博士",
     field:"智慧城市／防災監測／橋梁工程／土木工程",
     ext:"4569", email:"ymfang@o365.fcu.edu.tw" },
   { rank:2, title:"副教授", name:"穆青雲", edu:"逢甲大學土木及水利博士學位學程博士",
@@ -110,35 +115,35 @@ const FACULTY_FULL = [
   { rank:2, title:"副教授", name:"郝振宇", edu:"逢甲大學土木及水利博士學位學程博士",
     field:"智慧城市／資料標準／空間資訊／遙感探測／雲端服務",
     ext:"4560", email:"cyhao@o365.fcu.edu.tw" },
-  { rank:2, title:"副教授", name:"陳柏蒼", edu:"成功大學水利及海洋工程學系博士",
+  { rank:2, title:"副教授", name:"陳柏蒼", fcuId:"T95283", edu:"成功大學水利及海洋工程學系博士",
     field:"水資源系統分析／澇（旱）災害預警／災害防救／水文分析／環境生態評估／氣候混亂分析／人工智慧模式應用／水文統計／機率分析／程式設計／工程測量",
     ext:"3220", email:"btchen@o365.fcu.edu.tw" },
   { rank:2, title:"研究副教授", name:"劉建榮", edu:"逢甲大學土木及水利博士學位學程博士",
     field:"生態檢核／水環境改善、河川與區域排水風險評估",
     ext:"6456", email:"liucj@o365.fcu.edu.tw" },
 
-  { rank:3, title:"助理教授", name:"張育端", edu:"國立彰化師範大學地理學系博士",
+  { rank:3, title:"助理教授", name:"張育端", fcuId:"T00027", edu:"國立彰化師範大學地理學系博士",
     field:"不動產開發／不動產經營／都市發展／住宅／都市地理",
     ext:"4732", email:"ytuanchang@o365.fcu.edu.tw" },
-  { rank:3, title:"助理教授", name:"李長曄", edu:"耶魯大學法學院博士",
+  { rank:3, title:"助理教授", name:"李長曄", fcuId:"T11052", edu:"耶魯大學法學院博士",
     field:"憲法／行政法／行政救濟法",
     ext:"4725", email:"changylee@o365.fcu.edu.tw" },
-  { rank:3, title:"助理教授", name:"黃啟倡", edu:"逢甲大學土木及水利博士學位學程博士",
+  { rank:3, title:"助理教授", name:"黃啟倡", fcuId:"T97102", edu:"逢甲大學土木及水利博士學位學程博士",
     field:"交通控制／統計分析／交通安全／交通工程設計與規劃／智慧停車",
     ext:"4541", email:"chichuang@o365.fcu.edu.tw" },
-  { rank:3, title:"助理教授", name:"蔡明璋", edu:"逢甲大學土木及水利博士學位學程博士",
+  { rank:3, title:"助理教授", name:"蔡明璋", fcuId:"T90167", edu:"逢甲大學土木及水利博士學位學程博士",
     field:"地理資訊系統／空間分析／防災管理／資源開發管理／環境監測",
     ext:"4569", email:"mctasi@o365.fcu.edu.tw" },
-  { rank:3, title:"助理教授", name:"辜文元", edu:"中山醫學大學公共衛生學系博士",
+  { rank:3, title:"助理教授", name:"辜文元", fcuId:"T88116", edu:"中山醫學大學公共衛生學系博士",
     field:"資訊軟體系統設計／地理資訊系統／健保資料庫／癌症地圖",
     ext:"4569", email:"wyku@o365.fcu.edu.tw" },
-  { rank:3, title:"助理教授", name:"何智超", edu:"交通大學土木工程學系博士",
+  { rank:3, title:"助理教授", name:"何智超", fcuId:"T99079", edu:"交通大學土木工程學系博士",
     field:"水資源規劃／人工智慧與機械學習／氣候變遷／水文水理分析／遙測與空間分析／專案管理",
     ext:"3067", email:"chihcho@o365.fcu.edu.tw" },
-  { rank:3, title:"助理教授", name:"林秉賢", edu:"逢甲大學土木及水利工程研究所博士",
+  { rank:3, title:"助理教授", name:"林秉賢", fcuId:"T97151", fcuUnit:"CE02", fcuHost:"he", edu:"逢甲大學土木及水利工程研究所博士",
     field:"水利工程／水保工程／土石流理論／GIS 軟體",
     ext:"3223", email:"bslin@o365.fcu.edu.tw" },
-  { rank:3, title:"助理教授", name:"鍾侑達", edu:"逢甲大學土木及水利博士學位學程博士",
+  { rank:3, title:"助理教授", name:"鍾侑達", fcuId:"T97369", fcuUnit:"CE02", fcuHost:"he", edu:"逢甲大學土木及水利博士學位學程博士",
     field:"水文水資源分析／計算流體力學／水文水理學／人工智慧",
     ext:"3240", email:"ydjhong@o365.fcu.edu.tw" }
 ];
@@ -149,18 +154,18 @@ const FACULTY_PART = [
     field:"不動產經營管理／遙感探測學專論／建築設計／顧問諮詢" },
   { title:"教授", name:"葉名山", edu:"美國密西根州立大學土木工程研究所博士",
     field:"運輸安全／肇事分析／路面設計／工程與管理" },
-  { title:"副教授", name:"張梅英", edu:"政治大學地政研究所博士",
+  { title:"副教授", name:"張梅英", fcuId:"T73018", fcuUnit:"CM03", fcuHost:"lm", edu:"政治大學地政研究所博士",
     field:"不動產估價／土地政策與法規／情緒管理／領導藝術／領導與激勵／住宅問題研究／土地稅／土地經濟學／不動產金融／服務學習" },
-  { title:"副教授級（專技）", name:"王靚琇", edu:"英國卡地夫大學城市及區域規劃研究所",
+  { title:"副教授級（專技）", name:"王靚琇", fcuId:"T99191", edu:"英國卡地夫大學城市及區域規劃研究所",
     field:"土地政策與法規／土地管理與利用／不動產估價" },
-  { title:"副教授級（專技）", name:"謝錦龍", edu:"中國文化大學實業計劃研究所碩士",
+  { title:"副教授級（專技）", name:"謝錦龍", fcuId:"T78147", fcuUnit:"CM03", fcuHost:"lm", edu:"中國文化大學實業計劃研究所碩士",
     field:"營建法規／住宅計畫／不動產經營管理專論" },
-  { title:"助理教授級（專技）", name:"林宏澔", edu:"東吳大學企業管理學系碩士",
+  { title:"助理教授級（專技）", name:"林宏澔", fcuId:"T04199", edu:"東吳大學企業管理學系碩士",
     field:"不動產管理與實務" },
   { title:"助理教授級（專技）", name:"楊祥銘", edu:"逢甲大學土地管理學系碩士",
     field:"不動產估價及投資可行性評估／動產、無形資產鑑定" },
   { title:"助理教授級（專技）", name:"徐金煌", edu:"師範大學地理學系理學碩士",
     field:"電子電路設計／自動控制／程式設計／地理資訊／攝影測量" },
-  { title:"助理教授級（專技）", name:"管志偉", edu:"逢甲大學建設規劃與工程博士學位學程博士候選人",
+  { title:"助理教授級（專技）", name:"管志偉", fcuId:"T98122", edu:"逢甲大學建設規劃與工程博士學位學程博士候選人",
     field:"AI 影像辨識／GIS／MIS 系統開發／系統分析與設計／大數據分析／資料庫管理" }
 ];

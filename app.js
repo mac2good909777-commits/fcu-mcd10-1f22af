@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v4.4　2026-08-30";
+const VERSION = "v4.5　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -774,9 +774,22 @@ function render_profile(){
     <div class="sec"><h2>編輯我的資料</h2></div>
     <div class="notice-lock">
       這些會顯示在<b>同學名冊</b>，是別人認識你的第一印象。<br>
-      公司、職稱、學歷<b>已從新生名冊帶入</b>，不對就直接改。<br>
-      每一欄右邊可以自己選<b>給誰看</b>，預設是「本屆同學」。
+      公司、職稱、學歷<b>已從新生名冊帶入</b>，不對就直接改。
     </div>
+    <article class="card pad" style="margin-bottom:12px">
+      <h4 style="font-size:.9rem;font-weight:800;margin-bottom:6px">每一欄旁邊的
+        <span class="vissel-demo">本屆同學 ⌄</span> 是什麼？</h4>
+      <div class="bodytext" style="margin-top:0;font-size:.9rem">
+        那是<b>「這一欄給誰看」</b>的設定，每個欄位可以分開設，不想公開的就單獨關掉。三個選擇：
+      </div>
+      <dl class="kv" style="margin-top:10px">
+        <dt>公開</dt><dd>任何人都看得到，包含沒登入的訪客。</dd>
+        <dt>本屆同學</dt><dd><b>預設值</b>。只有登入的第十屆同學看得到。</dd>
+        <dt>只有自己</dt><dd>誰都看不到，只有你自己編輯時看得到。</dd>
+      </dl>
+      <div class="hint" style="margin-top:8px">
+        不確定就不用動，維持「本屆同學」是最常見的選擇。</div>
+    </article>
     ${(fullProfile(ME.id).confirmed === false) ? `<div class="notice-lock"
       style="background:#fff6e5;border-color:#f0d9a8">
       ⚠️ <b>你的資料目前不會顯示給其他同學。</b><br>
@@ -813,6 +826,7 @@ function profileField(f, p){
     // 一行兩格：左邊單位、右邊職稱，共用一個公開範圍
     return `<div class="field">
       <label>${esc(f.label)}
+        <span class="vislabel">給誰看</span>
         <select class="vissel" id="pv_${f.key}">
           ${visOptions(vis).map(([k, o]) =>
             `<option value="${k}"${k === vis ? " selected" : ""}>${esc(o.label)}</option>`).join("")}
@@ -833,6 +847,7 @@ function profileField(f, p){
       : `<input id="pf_${f.key}" value="${esc(val)}">`;
   return `<div class="field${f.key_field ? " key" : ""}">
     <label>${esc(f.label)}${f.optional ? `<span class="opt">選填</span>` : ""}
+      <span class="vislabel">給誰看</span>
       <select class="vissel" id="pv_${f.key}">
         ${visOptions(vis).map(([k, o]) =>
           `<option value="${k}"${k === vis ? " selected" : ""}>${esc(o.label)}</option>`).join("")}
@@ -1398,9 +1413,12 @@ function render_faculty(){
    ⛔ 沒有 fcuId 的不要用猜的組連結 —— 點進去是別的老師，比沒有連結更糟。
       改成連到學程網站搜尋，讓使用者自己看有沒有。 */
 function facultyLink(f){
-  return f.fcuId
-    ? { url:`https://mcd.fcu.edu.tw/teachers-detail/?id=${f.fcuId}&unit_id=CD16`, label:"個人介紹頁" }
-    : { url:`https://mcd.fcu.edu.tw/?s=${encodeURIComponent(f.name)}`, label:"在逢甲網站搜尋" };
+  if(!f.fcuId) return { url:`https://mcd.fcu.edu.tw/?s=${encodeURIComponent(f.name)}`,
+                        label:"在逢甲網站搜尋" };
+  // 老師分散在不同系所網站，host 與 unit 都要對；沒寫就是本學程
+  const host = f.fcuHost || "mcd", unit = f.fcuUnit || "CD16";
+  return { url:`https://${host}.fcu.edu.tw/teachers-detail/?id=${f.fcuId}&unit_id=${unit}`,
+           label:"個人介紹頁" };
 }
 function facultyCard(f){
   const link = facultyLink(f);
