@@ -8,7 +8,26 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v5.7　2026-08-30";
+/* ⚠️ GitHub Pages 把 index.html 快取 10 分鐘，但每支 js 後面有 ?v= 會立刻更新 ——
+   於是改版後十分鐘內，回訪的人會拿到【新的 js ＋ 舊的 css】，版面看起來像壞掉。
+   （2026-08-30 首頁幹部區就這樣整個爛掉過一次。）
+   解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
+   換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
+   ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
+const CSS_V = "58";
+(function fixStaleCss(){
+  if(document.documentElement.dataset.cssv === CSS_V) return;
+  // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
+  if(/[?&](code|state|error)=/.test(location.search)) return;
+  const k = "fcu10_cssfix";
+  try{
+    if(sessionStorage.getItem(k) === CSS_V) return;   // 只救一次，避免無限重載
+    sessionStorage.setItem(k, CSS_V);
+  }catch(e){ return; }
+  location.replace(location.pathname + "?r=" + CSS_V);
+})();
+
+const VERSION = "v5.8　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
