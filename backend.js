@@ -83,11 +83,33 @@ async function authApi(action, body){
 
 /* ── LINE 登入 ───────────────────────────────────────────────────
    標準 OAuth：導去 LINE → 使用者同意 → 帶 code 回來 → 後端換身分。
-   ⚠️ state 一定要驗：不驗的話別人可以用一段偽造的網址讓你登入他的帳號
-      （CSRF）。存 sessionStorage，用完就丟。                        */
+
+   ⚠️ state 一定要驗，不驗的話別人可以用一段偽造的網址讓你登入他的帳號（CSRF）。
+
+   ⛔ 但【不能存 sessionStorage】——
+      手機 Chrome 按登入會跳去 LINE App 授權，回來時 Chrome 開的常常是
+      【新的分頁】。sessionStorage 每個分頁各自獨立，新分頁裡是空的，
+      state 就永遠對不上，登入被自己擋掉。
+      （LINE 內建瀏覽器全程同一個分頁，所以測不出這個問題。）
+      改用 localStorage：跨分頁共用，仍然只有同一個網域讀得到，
+      CSRF 防護沒有變弱。加時效，用完就刪。 */
+const STATE_KEY = "fcu10_state", STATE_TTL = 15 * 60 * 1000;   // 15 分鐘
+function saveState(v){
+  try{ localStorage.setItem(STATE_KEY, JSON.stringify({ v, t: Date.now() })); }catch(e){}
+}
+function takeState(){
+  try{
+    const raw = localStorage.getItem(STATE_KEY);
+    localStorage.removeItem(STATE_KEY);          // 用完就丟，不能重放
+    if(!raw) return "";
+    const o = JSON.parse(raw);
+    return (Date.now() - o.t < STATE_TTL) ? o.v : "";
+  }catch(e){ return ""; }
+}
+
 function lineLogin(){
   const state = crypto.randomUUID();
-  try{ sessionStorage.setItem("fcu10_state", state); }catch(e){}
+  saveState(state);
   const q = new URLSearchParams({
     response_type: "code",
     client_id: CONFIG.LINE_CHANNEL_ID,
@@ -104,14 +126,15 @@ async function handleLineCallback(){
   const code = u.get("code"), state = u.get("state");
   if(!code) return false;
 
-  let saved = "";
-  try{ saved = sessionStorage.getItem("fcu10_state") || ""; }catch(e){}
-  try{ sessionStorage.removeItem("fcu10_state"); }catch(e){}
+  const saved = takeState();
   // 網址清乾淨：不然使用者重新整理會拿一個已經用掉的 code 再打一次
   history.replaceState({}, "", CONFIG.REDIRECT);
 
   if(!state || state !== saved){
-    alert("登入驗證失敗，請重新登入一次。");
+    // ⚠️ 錯誤訊息要說得出「怎麼辦」。使用者不知道什麼是驗證字串，
+    //    但看得懂「在同一個瀏覽器重新按一次登入」。
+    loginFailed("登入的驗證字串對不上（多半是中途換了瀏覽器或分頁）。" +
+                "請在同一個瀏覽器裡重新按一次登入。");
     return true;
   }
 
