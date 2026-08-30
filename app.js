@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v2.5　2026-08-30";
+const VERSION = "v2.7　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -646,16 +646,30 @@ function memberCard(m){
   const ind = seeVal(m, "industry"), tag = seeVal(m, "tag"), head = seeVal(m, "headline");
   const nick = seeVal(m, "nickname");
   const anything = seesAnything(m);
+
+  /* 版面：
+       第一列  左＝頭像與姓名　右＝單位／職稱（可能多組）
+       第二列  一句話自介，整行
+       最後    標籤靠底對齊
+     ⛔ 頭像不要獨佔一整列 —— 那會讓上方空一大塊，
+        資訊全擠在下面的窄柱裡，316px 的欄寬等於白給。 */
   return `<div class="mcard${m.status === "leave" ? " dim" : ""}" onclick="openMember(${m.id})">
     ${m.officer ? `<div class="of">${esc(officerBadge(m))}</div>` : ""}
-    <div class="ava" style="background:${groupColor(m.group)}">${esc(initials(m.name))}</div>
-    <div class="n">${esc(m.name)}${nick ? `<span class="nick">${esc(nick)}</span>` : ""}</div>
-    ${orgs.length ? `<div class="c">${orgs.map((o, i) =>
-      `<div class="org${i ? " alt" : ""}">${esc(o.c || "")}${
-        o.c && o.t ? "<br>" : ""}<span>${esc(o.t || "")}</span></div>`).join("")}</div>` : ""}
+    <div class="mrow1">
+      <div class="mwho">
+        <div class="ava" style="background:${groupColor(m.group)}">${esc(initials(m.name))}</div>
+        <div class="n">${esc(m.name)}</div>
+        ${nick ? `<div class="nick">${esc(nick)}</div>` : ""}
+      </div>
+      <div class="c">
+        ${orgs.length ? orgs.map((o, i) =>
+          `<div class="org${i ? " alt" : ""}">${esc(o.c || "")}${
+            o.c && o.t ? "<br>" : ""}<span>${esc(o.t || "")}</span></div>`).join("")
+          : `<span class="locked">${m.confirmed === false ? "尚未填寫" : LOCKED}</span>`}
+      </div>
+    </div>
     ${head ? `<div class="head">「${esc(head)}」</div>` : ""}
-    ${!anything ? `<div class="c locked">${m.confirmed === false ? "尚未填寫" : LOCKED}</div>` : ""}
-    <div class="pills" style="justify-content:center">
+    <div class="pills">
       ${tag ? `<span class="pill solid" style="background:${groupColor(m.group)}">${esc(tag)}</span>` : ""}
       ${ind ? `<span class="pill">${esc(INDUSTRIES[ind] || "")}</span>` : ""}
       ${!tag && !ind ? `<span class="pill"><span class="gdot" style="background:${groupColor(m.group)}"></span>${esc((GROUPS[m.group]||{}).short||"")}</span>` : ""}
@@ -663,6 +677,7 @@ function memberCard(m){
     </div>
   </div>`;
 }
+
 function openMember(id){ DETAIL = id; go("mdetail"); }
 function render_mdetail(){
   const m = memberOf(DETAIL);
