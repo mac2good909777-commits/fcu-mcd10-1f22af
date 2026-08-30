@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v5.4　2026-08-30";
+const VERSION = "v5.5　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -577,7 +577,7 @@ function render_pdetail(){
     </article>`;
 }
 
-/* ── 同學名冊 ──────────────────────────────────────────────────── */
+/* ── 名冊 ──────────────────────────────────────────────────── */
 function render_members(){
   const q = M_FILTER.q.trim().toLowerCase();
   /* ⛔ 名冊只列【同學】。老師與助教也在 members 裡（他們要能登入），
@@ -610,7 +610,7 @@ function render_members(){
                     .sort((a, b) => a.localeCompare(b, "zh-Hant")) : [];
 
   el("v-members").innerHTML = `
-    <div class="sec"><h2>同學名冊</h2><span class="hint">${list.length} / ${
+    <div class="sec"><h2>名冊</h2><span class="hint">${list.length} / ${
       MEMBERS.filter(m => (m.kind || "student") === "student").length} 位</span></div>
     ${!ME ? `<div class="notice-lock">
       名冊先開放<b>姓名</b>，方便同學進來對照認領自己。<br>
@@ -632,6 +632,11 @@ function render_members(){
         ${inds.map(k => `<button class="chip${M_FILTER.ind===k?" on":""}" onclick="M_FILTER.ind='${escAttr(k)}';render_members()">${esc(k)}</button>`).join("")}
       </div>` : ""}
     </div>
+    ${staff.length && M_FILTER.group === "all" && !M_FILTER.q ? `
+      <div class="sec" style="margin-top:4px">
+        <h2 style="font-size:.9rem"><span class="gdot" style="background:var(--p-700)"></span>學程師長</h2>
+        <span class="hint">${staff.length} 位</span></div>
+      <div class="mgrid">${staff.map(memberCard).join("")}</div>` : ""}
     ${!list.length ? `<div class="empty">沒有符合的同學</div>`
       : M_FILTER.group !== "all"
         ? `<div class="mgrid">${list.map(memberCard).join("")}</div>`
@@ -644,12 +649,13 @@ function render_members(){
                 <span class="hint">${ms.length} 位</span></div>
               <div class="mgrid">${ms.map(memberCard).join("")}</div>`;
           }).join("")}
-    ${staff.length && M_FILTER.group === "all" && !M_FILTER.q ? `
-      <div class="sec" style="margin-top:20px">
-        <h2 style="font-size:.9rem"><span class="gdot" style="background:var(--p-700)"></span>學程師長</h2>
-        <span class="hint">${staff.length} 位</span></div>
-      <div class="mgrid">${staff.map(memberCard).join("")}</div>` : ""}`;
+`;
 }
+/* 師長不屬於任何一組。members.grp 是 not null 且有 check，
+   建資料時只能先填 'land' 佔位（見 patch-05）——
+   ⛔ 那是佔位值，不是事實，一律不要拿它來顯示組別或配色。 */
+function isStudent(m){ return (m?.kind || "student") === "student"; }
+
 function memberCard(m){
   // 三組單位／職稱都放上去 —— 身兼多家的人，只顯示一個等於漏掉一半資訊
   const orgs = [["company","title"],["company2","title2"],["company3","title3"]]
@@ -673,7 +679,7 @@ function memberCard(m){
   return `<div class="mcard${m.status === "leave" ? " dim" : ""}" onclick="openMember(${m.id})">
     ${m.officer ? `<div class="of">${esc(officerBadge(m))}</div>` : ""}
     <div class="mtop">
-      <div class="ava" style="background:${groupColor(m.group)}">${esc(initials(m.name))}</div>
+      <div class="ava" style="background:${isStudent(m) ? groupColor(m.group) : "var(--p-700)"}">${esc(initials(m.name))}</div>
       <div class="mname">
         <div class="n">${esc(m.name)}</div>
         ${nick ? `<div class="nick">${esc(nick)}</div>` : ""}
@@ -685,9 +691,9 @@ function memberCard(m){
       : `<div class="c blank">${m.confirmed === false ? "尚未填寫資料" : LOCKED}</div>`}
     ${head ? `<div class="head">「${esc(head)}」</div>` : ""}
     <div class="pills">
-      ${tag ? `<span class="pill solid" style="background:${groupColor(m.group)}">${esc(tag)}</span>` : ""}
+      ${tag ? `<span class="pill solid" style="background:${isStudent(m) ? groupColor(m.group) : "var(--p-700)"}">${esc(tag)}</span>` : ""}
       ${ind ? `<span class="pill">${esc(ind)}</span>` : ""}
-      ${!tag && !ind ? `<span class="pill"><span class="gdot" style="background:${groupColor(m.group)}"></span>${esc((GROUPS[m.group]||{}).short||"")}</span>` : ""}
+      ${!tag && !ind && isStudent(m) ? `<span class="pill"><span class="gdot" style="background:${groupColor(m.group)}"></span>${esc((GROUPS[m.group]||{}).short||"")}</span>` : ""}
       ${statusPill(m)}
     </div>
   </div>`;
@@ -718,7 +724,7 @@ function render_mdetail(){
       <svg width="18" height="18" fill="none" stroke="currentColor"><use href="#i-back"/></svg>返回名冊</button></div>
     <article class="card pad detail">
       <div style="display:flex;gap:14px;align-items:center">
-        <div class="ava lg" style="background:${groupColor(m.group)}">${esc(initials(m.name))}</div>
+        <div class="ava lg" style="background:${isStudent(m) ? groupColor(m.group) : "var(--p-700)"}">${esc(initials(m.name))}</div>
         <div>
           <h3>${esc(m.name)}${nick ? `<span style="font-size:.82rem;color:var(--muted);font-weight:500">（${esc(nick)}）</span>` : ""}</h3>
           <div class="hint" style="margin-top:2px">${co || ti
@@ -727,7 +733,7 @@ function render_mdetail(){
                    : `<span class="locked">${LOCKED}</span>`}</div>
           <div class="pills" style="margin-top:7px">
             ${m.officer ? `<span class="pill solid" style="background:var(--c-orange)">${esc(m.officer)}</span>` : ""}
-            <span class="pill"><span class="gdot" style="background:${groupColor(m.group)}"></span>${esc(groupName(m.group))}</span>
+            ${isStudent(m) ? `<span class="pill"><span class="gdot" style="background:${groupColor(m.group)}"></span>${esc(groupName(m.group))}</span>` : ""}
             ${v("industry") ? `<span class="pill">${esc(v("industry"))}</span>` : ""}
             ${statusPill(m)}
           </div>
@@ -1578,8 +1584,11 @@ const NAV_GROUPS = [
      它右邊的說明字與動作鈕（＋發布）一起搬過來，不會弄丟。 */
   { v:"notices", label:"公告活動",
     tabs:[["notices","公告與問卷","公告與問卷"], ["acts","活動","活動"], ["album","相簿","班級相簿"]] },
-  { v:"courses", label:"課程",
-    tabs:[["courses","本學期","本學期課程"], ["calendar","行事曆","行事曆"], ["faculty","師資","師資"]] },
+  /* 行事曆單獨一項：它是「今天要看的東西」，
+     跟課表師資的查閱性質不同，收進分頁會被忘記。 */
+  { v:"calendar", label:"行事曆" },
+  { v:"courses", label:"課程師資",
+    tabs:[["courses","本學期","本學期課程"], ["faculty","師資","師資"]] },
   { v:"members", label:"同學" },
   { v:"needs",   label:"資源交流" },
   { v:"me",      label:"我的",
@@ -1594,7 +1603,7 @@ const NAV_ROOT = (() => {
   return Object.assign(m, { mdetail:"members", ndetail:"needs", pdetail:"notices", profile:"me", claim:"me" });
 })();
 const NAV_TITLES = { home:"首頁", notices:"公告", acts:"活動",
-  calendar:"行事曆", courses:"課程資訊", faculty:"師資", members:"同學名冊",
+  calendar:"行事曆", courses:"課程資訊", faculty:"師資", members:"名冊",
   needs:"資源交流", album:"相簿", me:"我的", admin:"班級管理", help:"使用說明" };
 
 function render(v){
