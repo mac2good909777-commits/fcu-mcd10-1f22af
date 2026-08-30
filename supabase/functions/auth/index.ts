@@ -15,6 +15,7 @@
 //   save_need / close_need / delete_need     資源交流（本人）
 //   save_post / delete_post                  公告問卷活動（幹部）
 //   save_album / delete_album                相簿（幹部）
+//   feed         登入後的完整內容（含班內限定）
 //
 // ⛔ 為什麼這些也放進來，而不是讓前端直接打 PostgREST：
 //    這個專案的 JWT 簽章金鑰是 ECC(P-256)，我們手上只有 legacy 的
@@ -368,6 +369,21 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
 
+    // ── 登入後的完整內容 ────────────────────────────────────────
+    // ⚠️ 為什麼讀取也要繞這裡：前端一律用 anon key 打 PostgREST
+    //    （本專案 JWT 簽章金鑰是 ECC，PostgREST 解不開我們簽的 token），
+    //    所以資料庫看不出誰登入了。RLS 只放行 visibility='public'，
+    //    班內限定的內容必須由這支函式驗完身分後用 service key 取。
+    if (action === "feed") {
+      if (!meId) return json({ error: "請先登入" }, 401);
+      const [posts, needs, albums] = await Promise.all([
+        db("posts?select=*&published=is.true&order=created_at.desc"),
+        db("needs?select=*&order=created_at.desc"),
+        db("albums?select=*&order=taken_on.desc"),
+      ]);
+      return json({ ok: true, posts, needs, albums });
+    }
+
     // ── 資源交流 ─────────────────────────────────────────────────
     if (action === "save_need") {
       if (!meId) return json({ error: "請先登入" }, 401);
@@ -377,6 +393,7 @@ Deno.serve(async (req) => {
           p_member: meId, p_id: body.id ? Number(body.id) : null,
           p_title: String(body.title ?? "").slice(0, 200),
           p_body: String(body.body ?? "").slice(0, 5000),
+          p_visibility: body.visibility === "public" ? "public" : "class",
         }),
       });
       return json({ ok: true, id: r });

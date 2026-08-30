@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v5.5　2026-08-30";
+const VERSION = "v5.6　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -459,7 +459,8 @@ function render_home(){
 
 function noticeCard(p){
   return `<article class="card pad" onclick="openPost(${p.id})" style="cursor:pointer">
-    ${p.important ? `<div class="pills" style="margin-bottom:6px"><span class="pill warn">重要</span></div>` : ""}
+    ${p.important || visPill(p) ? `<div class="pills" style="margin-bottom:6px">${
+      p.important ? `<span class="pill warn">重要</span>` : ""}${visPill(p)}</div>` : ""}
     <b style="${p.important ? "color:var(--c-red)" : ""}">${esc(p.title)}</b>
     <div class="hint">${esc(nameOf(p.author_id))}　${twDate(p.created_at)}</div>
   </article>`;
@@ -483,6 +484,7 @@ function surveyCard(p){
       <span class="pill solid" style="background:var(--c-sky)">問卷</span>
       ${p.required ? `<span class="pill warn">必填</span>` : ""}
       ${p.deadline ? `<span class="pill">${esc(p.deadline)} 截止</span>` : ""}
+      ${visPill(p)}
     </div>
     <b>${esc(p.title)}</b>
     <div class="hint">已完成 ${p.done_count || 0} / ${activeCount()} 人
@@ -524,6 +526,7 @@ function eventCard(p){
       ${p.signup_open ? (left === 0 ? `<span class="pill warn">已額滿</span>`
         : left !== null ? `<span class="pill">剩 ${left} 位</span>` : `<span class="pill">開放報名</span>`) : ""}
       ${MY_SIGNUPS.has(p.id) ? `<span class="pill ok">已報名</span>` : ""}
+      ${visPill(p)}
     </div>
     <b style="font-size:1.02rem">${esc(p.title)}</b>
     <div class="meta" style="margin-top:7px">
@@ -988,10 +991,18 @@ function render_needs(){
       : emptyBox("還沒有人提需求",
           "這班橫跨開發、營造、建築、估價、地政、公部門、工程顧問、室內裝修、資訊、能源 —— 十幾個行業。有需求就開一則，有人接了就標記解決，看板上會留下誰接住的紀錄。比在 LINE 群裡問有效，因為 LINE 訊息會被洗掉。")}`;
 }
+/* 公開的東西要看得出來是公開的 ——
+   發文的人才會知道自己剛剛把什麼推到了全網際網路上。
+   班內限定是預設值，不用特別標，標了到處都是徽章反而看不到重點。 */
+function visPill(x){
+  return x?.visibility === "public"
+    ? `<span class="pill open">🌐 公開</span>` : "";
+}
 function needRow(n){
   return `<article class="card pad" onclick="openNeed(${n.id})" style="cursor:pointer">
     <div class="pills" style="margin-bottom:6px">
       ${n.done ? `<span class="pill ok">已解決</span>` : `<span class="pill solid" style="background:var(--c-green)">徵求中</span>`}
+      ${visPill(n)}
     </div>
     <b>${esc(n.title)}</b>
     <div class="hint">${esc(nameOf(n.author_id))}　${twDate(n.created_at)}</div>
@@ -1053,6 +1064,7 @@ function albumCard(a){
     <a href="${url ? escAttr(url) : "#/album"}" ${url ? `target="_blank" rel="noopener"` : ""}>
       ${a.cover && safeUrl(a.cover) ? `<img src="${escAttr(safeUrl(a.cover))}" alt="">`
                                     : `<div class="acover">📷</div>`}
+      ${visPill(a) ? `<div class="acorner">${visPill(a)}</div>` : ""}
       <div class="cap">${esc(a.title)}
         <span>${esc(a.date || "")}${a.note ? "　" + esc(a.note) : ""}</span></div>
     </a>

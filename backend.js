@@ -276,25 +276,45 @@ const SB = {
     return rows.map(r => ({ ...r, group: r.grp }));
   },
   async posts(){
+    const f = await SB.feed();
+    if(f) return f.posts;
     return rest("posts?select=id,kind,title,body,important,published,event_at,time_text,place," +
       "speaker,speaker_title,org,fee,capacity,reserved_seats,signup_open,waitlist_open," +
-      "deadline,link,required,done_count,author_id,created_at&order=created_at.desc");
+      "deadline,link,required,done_count,author_id,created_at,visibility&order=created_at.desc");
   },
   async needs(){
-    return rest("needs?select=id,author_id,title,body,done,helpers,created_at&order=created_at.desc");
+    const f = await SB.feed();
+    if(f) return f.needs;
+    return rest("needs?select=id,author_id,title,body,done,helpers,created_at,visibility&order=created_at.desc");
+  },
+  /* 登入後改用 feed 一次取回，並把三份結果暫存 —— posts/needs/albums
+     是同時發出的三個呼叫，不共用就會打三次同樣的函式。 */
+  _feed: null,
+  async feed(){
+    if(!tokenOf()) return null;
+    if(!SB._feed){
+      SB._feed = authApi("feed").then(r => {
+        setTimeout(() => { SB._feed = null; }, 1500);   // 只在這一輪載入內共用
+        if(r.error) throw new Error(r.error);
+        return r;
+      }, e => { SB._feed = null; throw e; });
+    }
+    return SB._feed;
   },
   async albums(){
-    const rows = await rest("albums?select=id,title,taken_on,cover,link,note&order=taken_on.desc");
+    const f = await SB.feed();
+    const rows = f ? f.albums
+      : await rest("albums?select=id,title,taken_on,cover,link,note,visibility&order=taken_on.desc");
     return rows.map(a => ({ ...a, date: a.taken_on || "" }));
   },
   // 寫入一律走 Edge Function（PostgREST 收不到我們的身分，見 sbHeaders）
-  async saveNeed(n){    const r = await authApi("save_need", n);    if(r.error) throw new Error(r.error); return r; },
-  async closeNeed(id, done, helpers){ const r = await authApi("close_need", {id, done, helpers}); if(r.error) throw new Error(r.error); return r; },
-  async deleteNeed(id){ const r = await authApi("delete_need", {id}); if(r.error) throw new Error(r.error); return r; },
-  async savePost(data){ const r = await authApi("save_post", {data});  if(r.error) throw new Error(r.error); return r; },
-  async deletePost(id){ const r = await authApi("delete_post", {id});  if(r.error) throw new Error(r.error); return r; },
-  async saveAlbum(data){const r = await authApi("save_album", {data}); if(r.error) throw new Error(r.error); return r; },
-  async deleteAlbum(id){const r = await authApi("delete_album", {id}); if(r.error) throw new Error(r.error); return r; },
+  async saveNeed(n){    SB._feed = null; const r = await authApi("save_need", n);    if(r.error) throw new Error(r.error); return r; },
+  async closeNeed(id, done, helpers){ SB._feed = null; const r = await authApi("close_need", {id, done, helpers}); if(r.error) throw new Error(r.error); return r; },
+  async deleteNeed(id){ SB._feed = null; const r = await authApi("delete_need", {id}); if(r.error) throw new Error(r.error); return r; },
+  async savePost(data){ SB._feed = null; const r = await authApi("save_post", {data});  if(r.error) throw new Error(r.error); return r; },
+  async deletePost(id){ SB._feed = null; const r = await authApi("delete_post", {id});  if(r.error) throw new Error(r.error); return r; },
+  async saveAlbum(data){SB._feed = null; const r = await authApi("save_album", {data}); if(r.error) throw new Error(r.error); return r; },
+  async deleteAlbum(id){SB._feed = null; const r = await authApi("delete_album", {id}); if(r.error) throw new Error(r.error); return r; },
   async seats(){
     const rows = await rest("v_post_seats?select=post_id,capacity,reserved_seats,taken,waiting");
     return Object.fromEntries(rows.map(r => [r.post_id, r]));

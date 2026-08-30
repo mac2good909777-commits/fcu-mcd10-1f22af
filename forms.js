@@ -94,9 +94,13 @@ function needForm(id){
     { k:"title", label:"需求", required:true, value:n?.title || "",
       ph:"例如：找台中北屯的土地代書、想找人一起跑都更案場" },
     { k:"body", label:"說明", type:"textarea", value:n?.body || "",
-      ph:"時間、預算、地點、希望對方具備什麼 —— 寫得越具體越容易被接住。",
-      hint:"這則只有登入的同學看得到，不會出現在公開頁面。" },
-  ], vals => db.saveNeed({ id: id || null, title: vals.title, body: vals.body }),
+      ph:"時間、預算、地點、希望對方具備什麼 —— 寫得越具體越容易被接住。" },
+    { k:"visibility", label:"誰看得到", type:"select",
+      value: n?.visibility || "class",
+      options:[["class","只有登入的同學"],["public","公開，任何人都看得到"]],
+      hint:"預設是班內限定。選公開就會出現在沒登入的訪客眼前，也可能被搜尋引擎收走。" },
+  ], vals => db.saveNeed({ id: id || null, title: vals.title, body: vals.body,
+                           visibility: vals.visibility }),
     { onDelete: id ? () => db.deleteNeed(id).then(() => go("needs")) : null });
 }
 function toggleNeed(id, done){
@@ -128,6 +132,10 @@ function postForm(kind, id){
     { k:"link", label:"相關連結", value:p?.link || "",
       ph:"https://…", hint:"報名表單、地圖、活動頁都可以。" },
     { k:"important", label:"", type:"check", value:!!p?.important, checkLabel:"標為重要（首頁置頂）" },
+    { k:"visibility", label:"誰看得到", type:"select",
+      value: p?.visibility || "class",
+      options:[["class","只有登入的同學"],["public","公開，任何人都看得到"]],
+      hint:"預設是班內限定。選公開就會出現在沒登入的訪客眼前，也可能被搜尋引擎收走。" },
   ];
   openForm(p ? "編輯" : (isEvent ? "發布活動" : "發布公告"),
     isEvent ? [...base, ...eventFields, ...tail] : [...base, ...tail],
@@ -149,6 +157,10 @@ function albumForm(id){
     { k:"cover", label:"封面圖網址", value:a?.cover || "",
       hint:"可以留白，留白就顯示一個色塊。" },
     { k:"note", label:"備註", value:a?.note || "" },
+    { k:"visibility", label:"誰看得到", type:"select",
+      value: a?.visibility || "class",
+      options:[["class","只有登入的同學"],["public","公開，任何人都看得到"]],
+      hint:"預設是班內限定。選公開就會出現在沒登入的訪客眼前，也可能被搜尋引擎收走。" },
   ], vals => db.saveAlbum(Object.assign({ id: id || null }, vals)),
     { onDelete: id ? () => db.deleteAlbum(id) : null });
 }
