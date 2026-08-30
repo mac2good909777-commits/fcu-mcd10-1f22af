@@ -14,7 +14,7 @@
    解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
    換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
    ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
-const CSS_V = "80";
+const CSS_V = "81";
 (function fixStaleCss(){
   if(document.documentElement.dataset.cssv === CSS_V) return;
   // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
@@ -27,7 +27,7 @@ const CSS_V = "80";
   location.replace(location.pathname + "?r=" + CSS_V);
 })();
 
-const VERSION = "v8.0　2026-08-30";
+const VERSION = "v8.1　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -252,7 +252,7 @@ const PROFILE_FIELDS = [
   { key:"email",    label:"Email",     type:"text", vis:"class", contact:true },
   { key:"q_why",    label:"為什麼來讀建設碩士？", type:"area", vis:"class", optional:true },
   { key:"q_thesis", label:"論文或專題想做什麼方向？", type:"area", vis:"class", optional:true },
-  { key:"q_team",   label:"想找什麼樣的同學一起做報告？", type:"area", vis:"class", optional:true }
+  { key:"q_team",   label:"想找什麼樣專業背景或研究背景的同學一起做報告？", type:"area", vis:"class", optional:true }
 ];
 const FIELD = Object.fromEntries(PROFILE_FIELDS.map(f => [f.key, f]));
 
