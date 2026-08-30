@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v2.4　2026-08-30";
+const VERSION = "v2.5　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -639,7 +639,10 @@ function render_members(){
           }).join("")}`;
 }
 function memberCard(m){
-  const co = seeVal(m, "company"), ti = seeVal(m, "title");
+  // 三組單位／職稱都放上去 —— 身兼多家的人，只顯示一個等於漏掉一半資訊
+  const orgs = [["company","title"],["company2","title2"],["company3","title3"]]
+    .map(([c, t]) => ({ c: seeVal(m, c), t: seeVal(m, t) }))
+    .filter(x => x.c || x.t);
   const ind = seeVal(m, "industry"), tag = seeVal(m, "tag"), head = seeVal(m, "headline");
   const nick = seeVal(m, "nickname");
   const anything = seesAnything(m);
@@ -647,7 +650,9 @@ function memberCard(m){
     ${m.officer ? `<div class="of">${esc(officerBadge(m))}</div>` : ""}
     <div class="ava" style="background:${groupColor(m.group)}">${esc(initials(m.name))}</div>
     <div class="n">${esc(m.name)}${nick ? `<span class="nick">${esc(nick)}</span>` : ""}</div>
-    ${co || ti ? `<div class="c">${esc(co || "")}${co && ti ? "<br>" : ""}${esc(ti || "")}</div>` : ""}
+    ${orgs.length ? `<div class="c">${orgs.map((o, i) =>
+      `<div class="org${i ? " alt" : ""}">${esc(o.c || "")}${
+        o.c && o.t ? "<br>" : ""}<span>${esc(o.t || "")}</span></div>`).join("")}</div>` : ""}
     ${head ? `<div class="head">「${esc(head)}」</div>` : ""}
     ${!anything ? `<div class="c locked">${m.confirmed === false ? "尚未填寫" : LOCKED}</div>` : ""}
     <div class="pills" style="justify-content:center">
