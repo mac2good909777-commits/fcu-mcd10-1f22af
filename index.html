@@ -352,6 +352,26 @@ img{max-width:100%}
 .maptable th{background:var(--chip);font-weight:700;white-space:nowrap}
 .maptable .rowlab{background:var(--card);max-width:120px;white-space:normal}
 .maptable td div{margin:2px 0;line-height:1.5}
+/* ── 週曆 ───────────────────────────
+   ⚠️ 一定要能橫向捲動：五欄課表在手機上塞不下，
+      硬擠只會讓每個課名斷成一個字一行。 */
+.weekwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.week{border-collapse:collapse;width:100%;min-width:640px;font-size:.78rem}
+.week th,.week td{border:1px solid var(--line);vertical-align:top;padding:6px}
+.week th{background:var(--chip);color:var(--chip-text);font-weight:800;text-align:center}
+.week .tcorner{width:78px;background:var(--card)}
+.week .tslot{width:78px;background:var(--card);color:var(--muted);font-weight:700;
+  font-size:.72rem;white-space:pre-line;line-height:1.4;text-align:center}
+.week td{min-width:112px}
+.wcls{border-left:3px solid var(--p-500);background:var(--line-soft);
+  border-radius:6px;padding:6px 8px;line-height:1.45}
+.wcls + .wcls{margin-top:5px}
+.wcls b{display:block;font-size:.79rem;font-weight:700;color:var(--text)}
+.wcls .wt{display:block;font-size:.7rem;color:var(--muted);margin-top:2px}
+.wcls .wtag{display:inline-block;font-size:.64rem;font-weight:800;color:var(--warn);
+  background:#fdece4;border-radius:999px;padding:0 6px;margin-top:3px}
+.wcls.req{background:#fff6e5;border-left-color:var(--c-orange)}
 .linkrow{display:flex;align-items:center;gap:10px;padding:13px 15px;font-size:.9rem;
   font-weight:600;border-bottom:1px solid var(--line-soft);cursor:pointer}
 .linkrow:last-child{border-bottom:none}
@@ -493,12 +513,12 @@ img{max-width:100%}
 <!-- ⚠️ 每支 js 後面的 ?v= 是快取破解用的。
      GitHub Pages 會讓瀏覽器把 js 快取住，不加這個的話我改了東西，
      同學那邊還是舊版，而且看不出來 —— 每次改版把 v 一起換掉。 -->
-<script src="config.js?v=37"></script>
-<script src="school.js?v=37"></script>
-<script src="data.js?v=37"></script>
+<script src="config.js?v=39"></script>
+<script src="school.js?v=39"></script>
+<script src="data.js?v=39"></script>
 <!-- private.js 已於 2026-08-29 刪除：公司職稱改由資料庫按可見範圍吐出。
      ⛔ 不要為了「本機測試方便」把它加回來 —— 那等於再開一個公開的個資副本。 -->
-<script src="backend.js?v=37"></script>
-<script src="app.js?v=37"></script>
+<script src="backend.js?v=39"></script>
+<script src="app.js?v=39"></script>
 </body>
 </html>

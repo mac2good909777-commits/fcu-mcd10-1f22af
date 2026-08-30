@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v3.7　2026-08-30";
+const VERSION = "v3.9　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -1149,8 +1149,8 @@ function classScheduleHTML(today){
     </article>
 
     <article class="card pad" style="margin-top:12px">
-      <h4 style="font-size:.86rem;color:var(--muted);letter-spacing:.5px;margin-bottom:6px">備註</h4>
-      <ul class="offlist">${s.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>
+      <h4 style="font-size:.86rem;color:var(--muted);letter-spacing:.5px;margin-bottom:6px">開學怎麼上</h4>
+      <div class="bodytext" style="margin-top:0">${esc(s.notes_text)}</div>
       <div class="notice-lock" style="margin:12px 0 0">⚠️ ${esc(s.caveat)}</div>
       <div class="hint" style="margin-top:8px">
         第 2 學期（115-2）的休假表學程還沒公告，公告後補上。
@@ -1204,8 +1204,6 @@ function adminCalendarHTML(today, next){
 function render_courses(){
   const c = COURSE_INFO, t = THIS_TERM, today = twDate(new Date());
   const nextF = FORUM.sessions.find(x => x.date >= today);
-  const req = t.rows.filter(r => r.kind === "必修");
-  const ele = t.rows.filter(r => r.kind !== "必修");
 
   el("v-courses").innerHTML = `
     <div class="sec"><h2>本學期課程</h2><span class="hint">${esc(t.term)}</span></div>
@@ -1223,30 +1221,26 @@ function render_courses(){
       </div>
     </article>` : ""}
 
-    <div class="sec"><h2>必修</h2></div>
-    <article class="card">${req.map(courseRow).join("")}</article>
-
-    <div class="sec"><h2>選修</h2><span class="hint">每門 3 學分</span></div>
-    <article class="card">${ele.map(courseRow).join("")}</article>
+    <div class="sec"><h2>本學期週曆</h2></div>
+    ${weekGrid(t.rows)}
     <div class="hint" style="margin-top:8px">
-      ⚠️ <b>週一晚上同時開兩門</b>（國土計畫專論、結構物安全鑑定實務），
-      要選就得二擇一。<b>星期四沒有課</b>。<br>
-      ${esc(t.periods)}<br>
-      資料來源：${esc(t.source)}。${esc(t.note)}</div>
+      平日晚間都是 18:10–21:00，週六早上 09:10–11:00、下午 13:10–16:00。
+      <b>星期四沒有課</b>；<b>週一晚上兩門課同時開</b>，國土計畫專論與結構物安全鑑定實務只能二擇一。
+      資料出自${esc(t.source)}，實際時間與教室仍以學校課表與授課老師公告為準。</div>
 
     <details class="howto" style="margin-top:12px">
       <summary>碩二課表（115-1，第九屆學長姊的課，供規劃參考）</summary>
       <div class="howtobody" style="padding:0">
-        <article class="card" style="box-shadow:none;border:none">
-          ${TERM_Y2.rows.map(courseRow).join("")}
-        </article>
+        ${weekGrid(TERM_Y2.rows)}
         <div class="hint" style="padding:0 0 10px">
           ⚠️ 我們升碩二時是 116-1，開課內容會不一樣。</div>
       </div>
     </details>
 
-    <div class="sec"><h2>建設發展創新論壇　六場次</h2></div>
-    <div class="hint" style="margin-bottom:10px">${esc(FORUM.summary)}<br>地點：${esc(FORUM.place)}</div>
+    <div class="sec"><h2>建設發展創新論壇</h2></div>
+    <div class="hint" style="margin-bottom:10px">
+      碩一必修 1 學分，整學期六堂 —— 五次論壇加一次師生座談會，
+      多數排在週六下午在紀 301，但有三場改時間或改地點，出門前先確認一下。</div>
     <article class="card">
       ${FORUM.sessions.map(x => {
         const past = x.date < today;
@@ -1261,8 +1255,8 @@ function render_courses(){
       }).join("")}
     </article>
     <article class="card pad" style="margin-top:12px">
-      <h4 style="font-size:.86rem;color:var(--muted);letter-spacing:.5px;margin-bottom:6px">評分方式</h4>
-      <ul class="offlist">${FORUM.grading.map(g => `<li>${esc(g)}</li>`).join("")}</ul>
+      <h4 style="font-size:.86rem;color:var(--muted);letter-spacing:.5px;margin-bottom:6px">怎麼算分</h4>
+      <div class="bodytext" style="margin-top:0">${esc(FORUM.grading_text)}</div>
     </article>
 
     <div class="sec"><h2>課程地圖</h2></div>
@@ -1273,8 +1267,10 @@ function render_courses(){
         <div class="cseg ele" style="flex:${COURSE_MAP.credits.total - COURSE_MAP.credits.required}">
           <b>${COURSE_MAP.credits.total - COURSE_MAP.credits.required}</b><span>選修</span></div>
       </div>
-      <div class="hint" style="margin-top:8px">畢業共 <b>${COURSE_MAP.credits.total}</b> 學分，
-        選修每門 ${COURSE_MAP.credits.per_elective} 學分。${esc(COURSE_MAP.credits.outside)}</div>
+      <div class="hint" style="margin-top:8px">
+        畢業要 <b>${COURSE_MAP.credits.total}</b> 學分：共同必修 ${COURSE_MAP.credits.required} 學分，
+        其餘全部靠選修湊，每門 ${COURSE_MAP.credits.per_elective} 學分 ——
+        也就是還要修滿十門。${esc(COURSE_MAP.credits.outside)}</div>
       <details class="howto" style="margin-top:12px">
         <summary>展開四學期完整課程地圖</summary>
         <div class="howtobody">
@@ -1308,20 +1304,35 @@ function render_courses(){
     </div>`;
 }
 
-function courseRow(r){
-  return `<div class="calrow">
-    <div class="caldate wide">
-      <b>${r.day ? "週" + r.day : "—"}</b>
-      <span>${r.credits} 學分</span>
-    </div>
-    <div class="calbody">
-      <div class="caltext"><b>${esc(r.name)}</b></div>
-      <div class="hint">${[r.time, r.teacher, r.note].filter(Boolean).map(esc).join("　")}</div>
-    </div>
-    ${r.group ? `<span class="pill solid" style="align-self:flex-start;background:${groupColor(r.group)}">${
-      esc((GROUPS[r.group]||{}).short||"")}</span>`
-      : `<span class="pill warn" style="align-self:flex-start">必修</span>`}
-  </div>`;
+/* 課表用週曆呈現。
+   ⚠️ 一個格子可能同時有兩門課（週一晚上、週六早上就是），
+      所以每格是陣列不是單一課程 —— 這是課表最容易寫錯的地方。
+   ⚠️ 欄位固定用課表原本的星期集合（碩一沒有週四），不要自己補齊
+      一到五 —— 補出來的空欄會讓人以為那天有課只是還沒排。 */
+function weekGrid(rows){
+  const DAY_ORDER = ["一","二","三","四","五","六","日"];
+  const days = DAY_ORDER.filter(d => rows.some(r => r.day === d));
+  // 時段排序：節次 0 最前，其餘照開始時間
+  const rank = t => t.includes("節次") ? -1 : parseInt(t.replace(/[^0-9]/g, "").slice(0, 4), 10);
+  const slots = [...new Set(rows.map(r => r.time))].sort((a, b) => rank(a) - rank(b));
+
+  return `<div class="weekwrap"><table class="week">
+    <tr><th class="tcorner"></th>${days.map(d => `<th>週${d}</th>`).join("")}</tr>
+    ${slots.map(slot => `<tr>
+      <th class="tslot">${esc(slot.replace("–", "
+–"))}</th>
+      ${days.map(d => {
+        const cs = rows.filter(r => r.day === d && r.time === slot);
+        if(!cs.length) return `<td></td>`;
+        return `<td>${cs.map(r => `<div class="wcls${r.kind === "必修" ? " req" : ""}"
+          style="${r.group ? `border-left-color:${groupColor(r.group)}` : ""}">
+          <b>${esc(r.name)}</b>
+          ${r.kind === "必修" ? `<span class="wtag">必修</span>` : ""}
+          ${r.teacher ? `<span class="wt">${esc(r.teacher)}</span>` : ""}
+        </div>`).join("")}</td>`;
+      }).join("")}
+    </tr>`).join("")}
+  </table></div>`;
 }
 
 /* ── 使用說明 ──────────────────────────────────────────────────── */
