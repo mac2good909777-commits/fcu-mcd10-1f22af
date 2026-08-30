@@ -14,7 +14,7 @@
    解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
    換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
    ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
-const CSS_V = "71";
+const CSS_V = "72";
 (function fixStaleCss(){
   if(document.documentElement.dataset.cssv === CSS_V) return;
   // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
@@ -27,7 +27,7 @@ const CSS_V = "71";
   location.replace(location.pathname + "?r=" + CSS_V);
 })();
 
-const VERSION = "v7.1　2026-08-30";
+const VERSION = "v7.2　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -1367,7 +1367,9 @@ function offItemsHTML(r){
       const p = d.split("-");
       return +p[1] === +m[1] && +p[2] === +m[2];
     });
-    const cs = date ? coursesOn(date) : [];
+    // ⛔ 只有停課的日子才列 —— 9/8 開學那列是要上課的，
+    //    接上「當日課程」會讓人以為那天也放假。
+    const cs = (date && r.teach === false) ? coursesOn(date) : [];
     return `<li>${esc(t)}${cs.length ? `<span class="oncls">當日課程　${
       cs.map(c => `<b>${esc(c.name)}</b>${c.teacher ? `　${esc(c.teacher)}` : ""}`).join("；")
     }</span>` : ""}</li>`;
