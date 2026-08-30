@@ -14,7 +14,7 @@
    解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
    換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
    ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
-const CSS_V = "76";
+const CSS_V = "77";
 (function fixStaleCss(){
   if(document.documentElement.dataset.cssv === CSS_V) return;
   // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
@@ -27,7 +27,7 @@ const CSS_V = "76";
   location.replace(location.pathname + "?r=" + CSS_V);
 })();
 
-const VERSION = "v7.6　2026-08-30";
+const VERSION = "v7.7　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -190,8 +190,13 @@ const VIS = {
 /* 下拉要顯示哪些選項。
    ⚠️ 已經存成隱藏值的欄位仍要列出那個選項，
       否則使用者一存檔就會被無聲改成別的範圍。 */
-const visOptions = current =>
-  Object.entries(VIS).filter(([k, o]) => !o.hidden || k === current);
+/* contact=true 的欄位（手機、Email、LINE ID）不給選「公開」與「全學程校友」——
+   ⛔ 選單裡看得到就會有人選，而公開在網頁上的手機號碼會被爬蟲收走。
+      資料庫的 mask_profile 也會再擋一次，兩層都要有：
+      這一層是不要讓人誤選，那一層是就算前端被繞過也還是擋得住。 */
+const visOptions = (current, contact) =>
+  Object.entries(VIS).filter(([k, o]) =>
+    (!o.hidden || k === current) && !(contact && (k === "public" || k === "alumni")));
 // 我現在是什麼身分 → 我最多看得到 rank 幾的欄位
 function viewerRank(target){
   if(ME && target && ME.id === target.id) return 9;          // 自己看自己：全都看得到
@@ -238,6 +243,14 @@ const PROFILE_FIELDS = [
     hint:"個人網站、公司網站、作品集都可以" },
   { key:"line_url", label:"LINE 加入好友連結", type:"text", vis:"class", line_help:true,
     hint:"貼上你的 LINE 連結，同學就能直接加你，不用先交換手機號碼" },
+  /* 聯絡方式。⛔ 這三個的 vis 選單會被強制拿掉「公開」與「全學程校友」——
+     資料庫的 mask_profile 也會再擋一次（就算前端被繞過）。
+     公開在網頁上的手機號碼會被爬蟲收走，收得到的只有詐騙電話。 */
+  { key:"line_id",  label:"LINE ID",   type:"text", vis:"class", contact:true,
+    hint:"不知道自己的加好友連結在哪抓的話，填 ID 就好" },
+  { key:"phone",    label:"手機",       type:"text", vis:"class", contact:true,
+    hint:"活動當天找不到人時，這是唯一有用的東西" },
+  { key:"email",    label:"Email",     type:"text", vis:"class", contact:true },
   { key:"q_why",    label:"為什麼來讀建設碩士？", type:"area", vis:"class", optional:true },
   { key:"q_thesis", label:"論文或專題想做什麼方向？", type:"area", vis:"class", optional:true },
   { key:"q_team",   label:"想找什麼樣的同學一起做報告？", type:"area", vis:"class", optional:true }
@@ -812,6 +825,15 @@ function render_mdetail(){
           ⚠️ 這看起來不像 LINE 的連結（正常是 line.me/ti/p/… 或 lin.ee/…），確認一下。</div>` : ""}
       </div>` : ""}
 
+      ${["line_id","phone","email"].some(k => v(k)) ? `<div class="block">
+        <h4>聯絡方式${isMe ? `<span class="hint" style="font-weight:500;margin-left:6px">只有同屆同學看得到</span>` : ""}</h4>
+        <dl class="kv">
+          ${v("line_id") ? `<dt>LINE ID</dt><dd>${esc(v("line_id"))}</dd>` : ""}
+          ${v("phone") ? `<dt>手機</dt><dd><a href="tel:${escAttr(v("phone").replace(/[^0-9+]/g, ""))}">${esc(v("phone"))}</a></dd>` : ""}
+          ${v("email") ? `<dt>Email</dt><dd><a href="mailto:${escAttr(v("email"))}">${esc(v("email"))}</a></dd>` : ""}
+        </dl>
+      </div>` : ""}
+
       ${["q_why","q_thesis","q_team"].some(k => v(k)) ? `<div class="qsec">
         ${["q_why","q_thesis","q_team"].map(k => block(k)).join("")}</div>` : ""}
 
@@ -920,7 +942,7 @@ function profileField(f, p){
       <label>${esc(f.label)}
         <span class="vislabel">給誰看</span>
         <select class="vissel" id="pv_${f.key}">
-          ${visOptions(vis).map(([k, o]) =>
+          ${visOptions(vis, f.contact).map(([k, o]) =>
             `<option value="${k}"${k === vis ? " selected" : ""}>${esc(o.label)}</option>`).join("")}
         </select>
       </label>
@@ -936,7 +958,7 @@ function profileField(f, p){
       <label>${esc(f.label)}
         <span class="vislabel">給誰看</span>
         <select class="vissel" id="pv_${f.key}">
-          ${visOptions(vis).map(([k, o]) =>
+          ${visOptions(vis, f.contact).map(([k, o]) =>
             `<option value="${k}"${k === vis ? " selected" : ""}>${esc(o.label)}</option>`).join("")}
         </select>
       </label>
@@ -956,7 +978,7 @@ function profileField(f, p){
     <label>${esc(f.label)}${f.optional ? `<span class="opt">選填</span>` : ""}
       <span class="vislabel">給誰看</span>
       <select class="vissel" id="pv_${f.key}">
-        ${visOptions(vis).map(([k, o]) =>
+        ${visOptions(vis, f.contact).map(([k, o]) =>
           `<option value="${k}"${k === vis ? " selected" : ""}>${esc(o.label)}</option>`).join("")}
       </select>
     </label>

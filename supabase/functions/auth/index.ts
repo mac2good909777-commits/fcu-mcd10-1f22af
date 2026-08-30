@@ -327,7 +327,12 @@ Deno.serve(async (req) => {
                      "company","title","company2","title2","company3","title3",
                      "industry","tag","headline","intro",
                      "resource","wish","topics","edu_bg","web","line_url",
-                     "q_why","q_thesis","q_team","vis"];
+                     "q_why","q_thesis","q_team",
+                     // ⚠️ 這三個資料庫早就有欄位，但一直沒放進白名單，
+                     //    所以前端就算送上來也被丟掉。mask_profile 會把它們
+                     //    強制限制在 class 以內，不必也不能靠這裡把關。
+                     "phone","email","line_id",
+                     "vis"];
       // ⚠️ confirmed_at 是「本人確認過」的印記。
       //    沒有它，名冊帶進來的公司職稱不會對其他同學顯示 ——
       //    那些是同學填給學校的，不是同意公開在班級看板上的。
