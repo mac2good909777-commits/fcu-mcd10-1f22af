@@ -31,7 +31,9 @@ const OFFICE = {
   ]
 };
 
-/* 專任教師。rank 用來分組排序，數字小的排前面。 */
+/* 專任教師。rank 用來分組排序，數字小的排前面。
+   head:true 的排在最前面 —— 學程主任是同學第一個要找的人，
+   不該按職稱順序埋在教授群裡。 */
 const FACULTY_FULL = [
   { rank:1, title:"教授", name:"蘇昭銘", fcuId:"T06214", edu:"臺灣大學土木工程學研究所交通組博士",
     field:"運輸管理／先進公共運輸系統／運輸車隊管理／運輸地理資訊系統",
@@ -59,7 +61,7 @@ const FACULTY_FULL = [
     ext:"4668", email:"wupj@o365.fcu.edu.tw" },
   { rank:1, title:"教授", name:"謝政穎", fcuId:"T82053", edu:"美國南加州大學都市計畫所博士",
     field:"都市計畫／國土及區域規劃／成長管理與都市設計／土地使用及公共設施規劃／區域及都市資訊系統／都市更新／都市交通運輸規劃",
-    ext:"3364", email:"jyshieh@o365.fcu.edu.tw", note:"學程主任" },
+    ext:"3364", email:"jyshieh@o365.fcu.edu.tw", note:"學程主任", head:true },
   { rank:1, title:"教授", name:"莊永忠", edu:"臺灣師範大學地理學博士",
     field:"地理資訊科學", ext:"3371", email:"yungcchuang@o365.fcu.edu.tw" },
 

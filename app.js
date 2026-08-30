@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v4.3　2026-08-30";
+const VERSION = "v4.4　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -1353,7 +1353,9 @@ let F_Q = "";
 function render_faculty(){
   const q = F_Q.trim();
   const hit = t => !q || (t.name + t.title + t.edu + t.field).includes(q);
-  const full = FACULTY_FULL.filter(hit).sort((a, b) => a.rank - b.rank);
+  // 學程主任排最前面，其餘照職稱（教授→副教授→助理教授）
+  const full = FACULTY_FULL.filter(hit)
+    .sort((a, b) => (b.head ? 1 : 0) - (a.head ? 1 : 0) || a.rank - b.rank);
   const part = FACULTY_PART.filter(hit);
 
   el("v-faculty").innerHTML = `
