@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v4.8　2026-08-30";
+const VERSION = "v4.9　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -306,6 +306,14 @@ const groupColor = g => (GROUPS[g] || {}).color || "var(--p-500)";
 const groupName  = g => (GROUPS[g] || {}).name || "";
 const isOfficer  = () => !!(ME && ME.officer);
 
+/* 班上有幾個人。
+   ⛔ 不要用 MEMBERS.length —— 那會把老師與助教一起算進去（變 52）。
+   ⛔ 也不要用 data.js 裡的靜態值 —— 名冊異動後就對不上了。
+   ⚠️ 休學的不算在「人數」裡，但名冊上還是列出來（標休學中）——
+      問「我們班幾個人」，答案是現在還在的那些。 */
+const activeCount = () =>
+  MEMBERS.filter(m => (m.kind || "student") === "student" && m.status !== "leave").length;
+
 /* ── 主視覺 ──────────────────────────────────────────────────────
    固定人言大樓 —— 逢甲最具代表性的建築、校內地標。
    ⛔ 原本做成可切換，但那是版型階段用來比較的工具；
@@ -324,7 +332,7 @@ function heroHTML(){
     <div class="txt">
       <div class="kicker">逢甲大學　FENG CHIA UNIVERSITY</div>
       <h2>建設碩士在職學位學程<br>第十屆同學看板</h2>
-      <div class="line">${CLASS_INFO.year}　共 ${CLASS_INFO.count} 位同學</div>
+      <div class="line">${CLASS_INFO.year}　共 ${activeCount()} 位同學</div>
     </div>
   </div>`;
 }
@@ -406,7 +414,7 @@ function render_home(){
           ${s.deadline ? `<span class="pill">${esc(s.deadline)} 截止</span>` : ""}
         </div>
         <b>${esc(s.title)}</b>
-        <div class="hint">已完成 ${s.done_count || 0} / ${CLASS_INFO.count} 人</div>
+        <div class="hint">已完成 ${s.done_count || 0} / ${activeCount()} 人</div>
       </article>`).join("")}` : ""}
 
     <div class="sec"><h2>最新公告</h2><button class="more" onclick="go('notices')">更多 ›</button></div>
@@ -421,7 +429,7 @@ function render_home(){
         <dt>學校</dt><dd>${esc(CLASS_INFO.school)}</dd>
         <dt>學程</dt><dd>${esc(CLASS_INFO.program)}<div class="hint">${esc(CLASS_INFO.program_en)}</div></dd>
         <dt>屆別</dt><dd>${esc(CLASS_INFO.cohort)}（${esc(CLASS_INFO.year)}）</dd>
-        <dt>人數</dt><dd>${CLASS_INFO.count} 位　<span class="hint" style="display:inline">在學 ${CLASS_INFO.active} 位</span></dd>
+        <dt>人數</dt><dd>${activeCount()} 位</dd>
         <dt>專業組別</dt><dd>${Object.values(GROUPS).map(g =>
           `<span class="pill" style="margin:2px 3px 2px 0"><span class="gdot" style="background:${g.color}"></span>${esc(g.name)}</span>`).join("")}</dd>
         <dt>學程網站</dt><dd><a href="${CLASS_INFO.site}" target="_blank" rel="noopener"
@@ -458,7 +466,7 @@ function surveyCard(p){
       ${p.deadline ? `<span class="pill">${esc(p.deadline)} 截止</span>` : ""}
     </div>
     <b>${esc(p.title)}</b>
-    <div class="hint">已完成 ${p.done_count || 0} / ${CLASS_INFO.count} 人
+    <div class="hint">已完成 ${p.done_count || 0} / ${activeCount()} 人
       ・${esc(nameOf(p.author_id))}</div>
   </article>`;
 }
@@ -1108,7 +1116,7 @@ function render_admin(){
     <article class="card pad">
       <h4 style="font-size:.86rem;color:var(--muted);letter-spacing:.5px;margin-bottom:8px">班級概況</h4>
       <dl class="kv">
-        <dt>同學人數</dt><dd>${MEMBERS.length} 位（在學 ${CLASS_INFO.active} 位）</dd>
+        <dt>同學人數</dt><dd>${activeCount()} 位在學</dd>
         <dt>幹部</dt><dd>${MEMBERS.filter(m=>m.officer).sort((a,b)=>officerRank(a)-officerRank(b))
           .map(m=>`<span class="pill" style="margin:2px 3px 2px 0">${esc(m.officer)}：${esc(m.name)}</span>`).join("")}</dd>
         <dt>組別分布</dt><dd>${Object.entries(byGroup).map(([g,ms]) =>
@@ -1273,7 +1281,7 @@ function render_courses(){
       </div>
     </article>` : ""}
 
-    <div class="sec"><h2>本學期週曆</h2></div>
+    <div class="sec"><h2>本學期週曆</h2><span class="hint">碩一上</span></div>
     ${weekGrid(t.rows)}
     <div class="hint" style="margin-top:8px">
       平日晚間都是 18:10–21:00，週六早上 09:10–11:00、下午 13:10–16:00。
@@ -1334,7 +1342,7 @@ function render_courses(){
         </div>
       </details>
       <details class="howto" style="margin-top:10px">
-        <summary>碩二課表（115-1，第九屆學長姊的課，供規劃參考）</summary>
+        <summary>碩二上課表（115-1，第九屆學長姊的課，供規劃參考）</summary>
         <div class="howtobody" style="padding:0">
           ${weekGrid(TERM_Y2.rows)}
           <div class="hint" style="padding:10px 0 0">
