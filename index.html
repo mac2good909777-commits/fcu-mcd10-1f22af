@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-TW" data-cssv="78">
+<html lang="zh-TW" data-cssv="79">
 <head>
 <meta charset="UTF-8">
 <meta name="robots" content="noindex, nofollow">
@@ -238,14 +238,10 @@ img{max-width:100%}
 .nav button.hasnew .dot{display:block}
 .deskonly{display:none}
 .navlg{display:none}.navsm{display:inline}
-/* 資源交流套金框：這是整個看板最想讓人用、但最容易被略過的一項。
-   ⚠️ 只給它一個 —— 兩個以上都「醒目」就等於都不醒目。
-   手機底部列改用金色文字＋上緣一條金線；那一格只有 54px，
-   四邊框會把字擠掉。 */
-.nav button[data-v="needs"]{color:#9A7314}
-.nav button[data-v="needs"]::before{content:"";position:absolute;top:0;left:8px;right:8px;
-  height:2.5px;border-radius:0 0 3px 3px;background:linear-gradient(90deg,#E8C86A,#B8901F,#E8C86A)}
-.nav button[data-v="needs"].on{color:#7A5A0C}
+/* 資源交流加一顆星：這是最想讓人用、也最容易被略過的一項。
+   ⛔ 原本做成整顆金框，太搶戲 —— 導覽列的重點是找路，不是打廣告。
+      一顆星就夠了。也只給這一個，兩顆以上就沒有意義。 */
+.navstar{color:#C9A227;font-size:.7em;margin-left:3px;vertical-align:super;line-height:1}
 /* 分頁列：合併後的群組用這排切換子頁 */
 .subtabs{display:flex;gap:4px;margin:0 0 14px;border-bottom:1px solid var(--line);
   overflow-x:auto;-webkit-overflow-scrolling:touch;
@@ -397,13 +393,6 @@ img{max-width:100%}
     letter-spacing:0;text-align:left;
     padding:13px 20px;font-size:.9rem;height:auto}
   .nav button.on{background:var(--chip)}
-  /* 側欄夠寬，改成整顆金框 */
-  .nav button[data-v="needs"]{border:1.5px solid #D8B54A;border-radius:10px;
-    margin:4px 10px;background:linear-gradient(100deg,#FFFBEF,#FFF6DC);
-    box-shadow:0 1px 3px rgba(184,144,31,.18)}
-  .nav button[data-v="needs"]::before{display:none}
-  .nav button[data-v="needs"].on{background:linear-gradient(100deg,#FFF4D4,#FFEBBB);
-    border-color:#B8901F}
   .nav button .dot{top:14px;right:auto;left:12px}
   .top .burger{display:none}
   .deskonly{display:flex}
@@ -679,7 +668,7 @@ img{max-width:100%}
        側欄用全名，底部列用短名 —— 同一個按鈕兩種寫法，別只留一種。 -->
   <button data-v="courses"><svg class="ic" width="21" height="21"><use href="#i-book"/></svg><span class="navlg">課程資訊與師資</span><span class="navsm">課程</span><i class="dot"></i></button>
   <button data-v="members"><svg class="ic" width="21" height="21"><use href="#i-people"/></svg>名冊<i class="dot"></i></button>
-  <button data-v="needs"><svg class="ic" width="21" height="21"><use href="#i-swap"/></svg>資源交流<i class="dot"></i></button>
+  <button data-v="needs"><svg class="ic" width="21" height="21"><use href="#i-swap"/></svg>資源交流<i class="navstar">★</i><i class="dot"></i></button>
   <button data-v="me"><svg class="ic" width="21" height="21"><use href="#i-me"/></svg>我的<i class="dot"></i></button>
   <button data-v="admin" id="nav-admin" class="deskonly" style="display:none"><svg class="ic" width="21" height="21"><use href="#i-shield"/></svg>班級管理<i class="dot"></i></button>
 </nav>
@@ -687,14 +676,14 @@ img{max-width:100%}
 <!-- ⚠️ 每支 js 後面的 ?v= 是快取破解用的。
      GitHub Pages 會讓瀏覽器把 js 快取住，不加這個的話我改了東西，
      同學那邊還是舊版，而且看不出來 —— 每次改版把 v 一起換掉。 -->
-<script src="config.js?v=78"></script>
-<script src="school.js?v=78"></script>
-<script src="faculty.js?v=78"></script>
-<script src="data.js?v=78"></script>
+<script src="config.js?v=79"></script>
+<script src="school.js?v=79"></script>
+<script src="faculty.js?v=79"></script>
+<script src="data.js?v=79"></script>
 <!-- private.js 已於 2026-08-29 刪除：公司職稱改由資料庫按可見範圍吐出。
      ⛔ 不要為了「本機測試方便」把它加回來 —— 那等於再開一個公開的個資副本。 -->
-<script src="backend.js?v=78"></script>
-<script src="app.js?v=78"></script>
-<script src="forms.js?v=78"></script>
+<script src="backend.js?v=79"></script>
+<script src="app.js?v=79"></script>
+<script src="forms.js?v=79"></script>
 </body>
 </html>
