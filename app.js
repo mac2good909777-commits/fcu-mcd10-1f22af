@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v3.6　2026-08-30";
+const VERSION = "v3.7　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -1228,8 +1228,22 @@ function render_courses(){
 
     <div class="sec"><h2>選修</h2><span class="hint">每門 3 學分</span></div>
     <article class="card">${ele.map(courseRow).join("")}</article>
-    <div class="hint" style="margin-top:8px">${esc(t.note)}
-      標「<b>時間待確認</b>」的是我從課表照片判讀的，請以學校課表為準。</div>
+    <div class="hint" style="margin-top:8px">
+      ⚠️ <b>週一晚上同時開兩門</b>（國土計畫專論、結構物安全鑑定實務），
+      要選就得二擇一。<b>星期四沒有課</b>。<br>
+      ${esc(t.periods)}<br>
+      資料來源：${esc(t.source)}。${esc(t.note)}</div>
+
+    <details class="howto" style="margin-top:12px">
+      <summary>碩二課表（115-1，第九屆學長姊的課，供規劃參考）</summary>
+      <div class="howtobody" style="padding:0">
+        <article class="card" style="box-shadow:none;border:none">
+          ${TERM_Y2.rows.map(courseRow).join("")}
+        </article>
+        <div class="hint" style="padding:0 0 10px">
+          ⚠️ 我們升碩二時是 116-1，開課內容會不一樣。</div>
+      </div>
+    </details>
 
     <div class="sec"><h2>建設發展創新論壇　六場次</h2></div>
     <div class="hint" style="margin-bottom:10px">${esc(FORUM.summary)}<br>地點：${esc(FORUM.place)}</div>
@@ -1302,8 +1316,7 @@ function courseRow(r){
     </div>
     <div class="calbody">
       <div class="caltext"><b>${esc(r.name)}</b></div>
-      <div class="hint">${[r.time + (r.unsure ? "（時間待確認）" : ""), r.teacher, r.note]
-        .filter(Boolean).map(esc).join("　")}</div>
+      <div class="hint">${[r.time, r.teacher, r.note].filter(Boolean).map(esc).join("　")}</div>
     </div>
     ${r.group ? `<span class="pill solid" style="align-self:flex-start;background:${groupColor(r.group)}">${
       esc((GROUPS[r.group]||{}).short||"")}</span>`
