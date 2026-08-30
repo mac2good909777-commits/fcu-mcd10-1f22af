@@ -395,6 +395,22 @@ img{max-width:100%}
 .linkrow:last-child{border-bottom:none}
 .linkrow:hover{background:var(--chip)}
 .linkrow .go{margin-left:auto;color:var(--p-500);font-weight:800}
+/* ── 幹部職務 ──────────────────────── */
+.offrow{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;cursor:pointer;
+  border-bottom:1px solid var(--line-soft)}
+.offrow:last-child{border-bottom:none}
+.offrow:hover{background:var(--chip)}
+.offbadge{flex:none;min-width:72px;text-align:center;font-size:.72rem;font-weight:800;
+  color:#fff;background:var(--c-orange);border-radius:999px;padding:4px 8px;line-height:1.4}
+.offbody{min-width:0}
+.offname{font-weight:800;font-size:.95rem;margin-bottom:2px}
+.offnote{margin-top:12px;padding:10px 12px;background:#fff6e5;border-radius:var(--r-sm);
+  font-size:.86rem;line-height:1.7}
+.offnote b{color:var(--warn)}
+@media (max-width:520px){
+  .offrow{flex-direction:column;gap:5px}
+  .offbadge{min-width:0;align-self:flex-start;padding:3px 10px}
+}
 /* 操作步驟收在 details 裡，不然表單會被一大段說明撐開 */
 .howto{margin-top:8px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--card)}
 .howto summary{cursor:pointer;padding:9px 12px;font-size:.82rem;font-weight:700;color:var(--p-500);
@@ -539,13 +555,13 @@ img{max-width:100%}
 <!-- ⚠️ 每支 js 後面的 ?v= 是快取破解用的。
      GitHub Pages 會讓瀏覽器把 js 快取住，不加這個的話我改了東西，
      同學那邊還是舊版，而且看不出來 —— 每次改版把 v 一起換掉。 -->
-<script src="config.js?v=49"></script>
-<script src="school.js?v=49"></script>
-<script src="faculty.js?v=49"></script>
-<script src="data.js?v=49"></script>
+<script src="config.js?v=50"></script>
+<script src="school.js?v=50"></script>
+<script src="faculty.js?v=50"></script>
+<script src="data.js?v=50"></script>
 <!-- private.js 已於 2026-08-29 刪除：公司職稱改由資料庫按可見範圍吐出。
      ⛔ 不要為了「本機測試方便」把它加回來 —— 那等於再開一個公開的個資副本。 -->
-<script src="backend.js?v=49"></script>
-<script src="app.js?v=49"></script>
+<script src="backend.js?v=50"></script>
+<script src="app.js?v=50"></script>
 </body>
 </html>

@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v4.9　2026-08-30";
+const VERSION = "v5.0　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -421,7 +421,16 @@ function render_home(){
     ${notices.length ? notices.map(noticeCard).join("") : emptyBox("還沒有公告", "幹部發布的班務公告會出現在這裡。標記「重要」的會置頂並顯示紅字。")}
 
     <div class="sec"><h2>班級幹部</h2><button class="more" onclick="go('members')">全班名冊 ›</button></div>
-    <div class="mgrid">${officers.map(memberCard).join("")}</div>
+    <div class="hint" style="margin-bottom:10px">有事找對人比較快。點名字看那個人的完整資料。</div>
+    <article class="card">
+      ${officers.map(m => `<div class="offrow" onclick="openMember(${m.id})">
+        <div class="offbadge">${esc(m.officer)}</div>
+        <div class="offbody">
+          <div class="offname">${esc(m.name)}</div>
+          <div class="hint">${esc(OFFICER_DESC[m.officer] || "")}</div>
+        </div>
+      </div>`).join("")}
+    </article>
 
     <div class="sec"><h2>關於這個班</h2></div>
     <article class="card pad">
@@ -715,6 +724,9 @@ function render_mdetail(){
           </div>
         </div>
       </div>
+
+      ${m.officer && OFFICER_DESC[m.officer] ? `<div class="offnote">
+        <b>${esc(m.officer)}</b>　${esc(OFFICER_DESC[m.officer])}</div>` : ""}
 
       ${v("headline") ? `<div class="headline">「${esc(v("headline"))}」</div>` : ""}
 
