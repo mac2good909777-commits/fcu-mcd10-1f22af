@@ -459,6 +459,19 @@ img{max-width:100%}
   color:#fff;background:var(--c-orange);border-radius:999px;padding:4px 8px;line-height:1.4}
 .offbody{min-width:0}
 .offname{font-weight:800;font-size:.95rem;margin-bottom:2px}
+/* 職務說明與人名分成兩塊：先知道該找哪個職務，再去找人。
+   兩欄排 —— 十二列一路往下拉，首頁會長到看不到底下的東西。 */
+.dutygrid,.offgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.duty{background:var(--card);border:1px solid var(--line);border-radius:var(--r-sm);
+  padding:10px 12px;display:flex;gap:10px;align-items:flex-start}
+.duty .offbadge{margin-top:1px}
+.offcard{background:var(--card);border:1px solid var(--line);border-radius:var(--r-sm);
+  padding:10px 12px;display:flex;gap:10px;align-items:center;cursor:pointer}
+.offcard:hover{background:var(--chip);border-color:var(--p-300)}
+.offcard .ava{width:36px;height:36px;font-size:.82rem;margin:0;flex:none}
+.offcard .offname{font-weight:800;font-size:.94rem}
+.offcard .offrole{font-size:.76rem;color:var(--p-500);font-weight:700;margin-top:1px}
+@media(max-width:600px){.dutygrid,.offgrid{grid-template-columns:1fr}}
 .offnote{margin-top:12px;padding:10px 12px;background:#fff6e5;border-radius:var(--r-sm);
   font-size:.86rem;line-height:1.7}
 .offnote b{color:var(--warn)}
@@ -629,14 +642,14 @@ img{max-width:100%}
 <!-- ⚠️ 每支 js 後面的 ?v= 是快取破解用的。
      GitHub Pages 會讓瀏覽器把 js 快取住，不加這個的話我改了東西，
      同學那邊還是舊版，而且看不出來 —— 每次改版把 v 一起換掉。 -->
-<script src="config.js?v=56"></script>
-<script src="school.js?v=56"></script>
-<script src="faculty.js?v=56"></script>
-<script src="data.js?v=56"></script>
+<script src="config.js?v=57"></script>
+<script src="school.js?v=57"></script>
+<script src="faculty.js?v=57"></script>
+<script src="data.js?v=57"></script>
 <!-- private.js 已於 2026-08-29 刪除：公司職稱改由資料庫按可見範圍吐出。
      ⛔ 不要為了「本機測試方便」把它加回來 —— 那等於再開一個公開的個資副本。 -->
-<script src="backend.js?v=56"></script>
-<script src="app.js?v=56"></script>
-<script src="forms.js?v=56"></script>
+<script src="backend.js?v=57"></script>
+<script src="app.js?v=57"></script>
+<script src="forms.js?v=57"></script>
 </body>
 </html>

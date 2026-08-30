@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v5.6　2026-08-30";
+const VERSION = "v5.7　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -430,17 +430,26 @@ function render_home(){
     <div class="sec"><h2>最新公告</h2><button class="more" onclick="go('notices')">更多 ›</button></div>
     ${notices.length ? notices.map(noticeCard).join("") : emptyBox("還沒有公告", "幹部發布的班務公告會出現在這裡。標記「重要」的會置頂並顯示紅字。")}
 
-    <div class="sec"><h2>班級幹部</h2><button class="more" onclick="go('members')">全班名冊 ›</button></div>
-    <div class="hint" style="margin-bottom:10px">有事找對人比較快。點名字看那個人的完整資料。</div>
-    <article class="card">
-      ${officers.map(m => `<div class="offrow" onclick="openMember(${m.id})">
-        <div class="offbadge">${esc(m.officer)}</div>
+    <div class="sec"><h2>幹部職務</h2></div>
+    <div class="hint" style="margin-bottom:10px">先看事情該找哪個職務，再去找人。</div>
+    <div class="dutygrid">
+      ${OFFICER_ORDER.filter(o => OFFICER_DESC[o]).map(o => `<div class="duty">
+        <div class="offbadge">${esc(o)}</div>
+        <div class="hint">${esc(OFFICER_DESC[o])}</div>
+      </div>`).join("")}
+    </div>
+
+    <div class="sec" style="margin-top:20px"><h2>班級幹部</h2><span class="hint">碩一上</span>
+      <button class="more" onclick="go('members')">全班名冊 ›</button></div>
+    <div class="offgrid">
+      ${officers.map(m => `<div class="offcard" onclick="openMember(${m.id})">
+        <div class="ava" style="background:${isStudent(m) ? groupColor(m.group) : "var(--p-700)"}">${esc(initials(m.name))}</div>
         <div class="offbody">
           <div class="offname">${esc(m.name)}</div>
-          <div class="hint">${esc(OFFICER_DESC[m.officer] || "")}</div>
+          <div class="offrole">${esc(m.officer)}</div>
         </div>
       </div>`).join("")}
-    </article>
+    </div>
 
     <div class="sec"><h2>關於這個班</h2></div>
     <article class="card pad">
