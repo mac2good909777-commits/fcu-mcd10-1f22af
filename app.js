@@ -14,7 +14,7 @@
    解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
    換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
    ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
-const CSS_V = "73";
+const CSS_V = "74";
 (function fixStaleCss(){
   if(document.documentElement.dataset.cssv === CSS_V) return;
   // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
@@ -27,7 +27,7 @@ const CSS_V = "73";
   location.replace(location.pathname + "?r=" + CSS_V);
 })();
 
-const VERSION = "v7.3　2026-08-30";
+const VERSION = "v7.4　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -1504,15 +1504,18 @@ function render_courses(){
       <details class="howto" style="margin-top:10px">
         <summary>課程配當表（依學期分必修選修）</summary>
         <div class="howtobody">
-          ${COURSE_ALLOC.terms.map(t => `<div class="alloc">
-            <div class="allocterm">${esc(t.name)}</div>
-            ${[["必修", t.req], ["選修", t.ele]].map(([lab, list]) => list.length
-              ? `<div class="allocrow"><span class="alloclab ${lab === "必修" ? "req" : ""}">${lab}</span>
-                   <span class="alloclist">${list.map(([n, c]) =>
-                     `${esc(n)}<i>${c}</i>`).join("、")}</span></div>` : "").join("")}
-          </div>`).join("")}
+          <div class="allocwrap">
+          ${COURSE_ALLOC.terms.map(t => `<table class="alloctable">
+            <tr><th class="at" colspan="2">${esc(t.name)}</th></tr>
+            ${[["必修科目", t.req], ["選修科目", t.ele]].map(([lab, list]) => list.length
+              ? `<tr><th class="ah">${lab}</th><th class="ah cr">學分</th></tr>
+                 ${list.map(([n, c]) =>
+                   `<tr><td>${esc(n)}</td><td class="cr">${c}</td></tr>`).join("")}`
+              : "").join("")}
+          </table>`).join("")}
+          </div>
           <div class="hint" style="margin-top:8px">
-            括號內是學分。資料出自${esc(COURSE_ALLOC.source)}。
+            資料出自${esc(COURSE_ALLOC.source)}。
             <br>⚠️ 這張表跟上面的選課地圖有三處課名不一致（手冊本身兩頁就不同），
             另有「都市及區域經濟」只出現在選課地圖 —— 以學程辦公室公告為準。</div>
         </div>
