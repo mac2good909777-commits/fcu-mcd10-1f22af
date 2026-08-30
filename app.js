@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v4.1　2026-08-30";
+const VERSION = "v4.3　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -1205,6 +1205,11 @@ function render_courses(){
   const c = COURSE_INFO, t = THIS_TERM, today = twDate(new Date());
   const nextF = FORUM.sessions.find(x => x.date >= today);
 
+  /* 排序原則：【會變動的放上面，固定的放下面】。
+     每學期都不一樣的（下一場論壇、本學期週曆）擺前面，
+     四年不動的（課程地圖、查課入口）收在後面。
+     ⛔ 不要照「重要性」排 —— 課程地圖看起來很重要，
+        但同學一學期只會看它一次，每週要看的是週曆。 */
   el("v-courses").innerHTML = `
     <div class="sec"><h2>本學期課程</h2><span class="hint">${esc(t.term)}</span></div>
 
@@ -1228,15 +1233,6 @@ function render_courses(){
       <b>星期四沒有課</b>；<b>週一晚上兩門課同時開</b>，國土計畫專論與結構物安全鑑定實務只能二擇一。
       資料出自${esc(t.source)}，實際時間與教室仍以學校課表與授課老師公告為準。</div>
 
-    <details class="howto" style="margin-top:12px">
-      <summary>碩二課表（115-1，第九屆學長姊的課，供規劃參考）</summary>
-      <div class="howtobody" style="padding:0">
-        ${weekGrid(TERM_Y2.rows)}
-        <div class="hint" style="padding:0 0 10px">
-          ⚠️ 我們升碩二時是 116-1，開課內容會不一樣。</div>
-      </div>
-    </details>
-
     <div class="sec"><h2>建設發展創新論壇</h2></div>
     <div class="hint" style="margin-bottom:10px">
       碩一必修 1 學分，整學期六堂 —— 五次論壇加一次師生座談會，
@@ -1258,6 +1254,8 @@ function render_courses(){
       <h4 style="font-size:.86rem;color:var(--muted);letter-spacing:.5px;margin-bottom:6px">怎麼算分</h4>
       <div class="bodytext" style="margin-top:0">${esc(FORUM.grading_text)}</div>
     </article>
+
+    <div class="sec"><h2 style="color:var(--muted)">── 以下不會變 ──</h2></div>
 
     <div class="sec"><h2>課程地圖</h2></div>
     <article class="card pad">
@@ -1288,6 +1286,14 @@ function render_courses(){
           <div class="hint" style="margin-top:8px">115 學年度入學新生適用。僅供參考，以當學期公告為主。</div>
         </div>
       </details>
+      <details class="howto" style="margin-top:10px">
+        <summary>碩二課表（115-1，第九屆學長姊的課，供規劃參考）</summary>
+        <div class="howtobody" style="padding:0">
+          ${weekGrid(TERM_Y2.rows)}
+          <div class="hint" style="padding:10px 0 0">
+            ⚠️ 我們升碩二時是 116-1，開課內容會不一樣。</div>
+        </div>
+      </details>
     </article>
 
     <div class="sec"><h2>自己查課</h2></div>
@@ -1302,6 +1308,7 @@ function render_courses(){
       ${c.search.fields.map(f => `${esc(f.label)} <b>${esc(f.value)}</b>`).join("、")}。<br>
       這個系統沒辦法做成直達連結 —— 網址帶一個會過期的憑證，選完條件網址也不會變。
     </div>`;
+
 }
 
 /* 課表用週曆呈現。
@@ -1335,6 +1342,78 @@ function weekGrid(rows){
       }).join("")}
     </tr>`).join("")}
   </table></div>`;
+}
+
+/* ── 師資 ────────────────────────────────────────────────────────
+   ⚠️ 找指導教授時，真正在找的是「專長對不對得上我的題目」，
+      所以搜尋框搜的是【專長】，不是只有姓名。
+   ⛔ 分機與 Email 登入後才顯示 —— 這是從新生手冊抄來的內部聯絡資訊，
+      公開放上網會被爬蟲收走。學程辦公室是對外窗口，例外公開。 */
+let F_Q = "";
+function render_faculty(){
+  const q = F_Q.trim();
+  const hit = t => !q || (t.name + t.title + t.edu + t.field).includes(q);
+  const full = FACULTY_FULL.filter(hit).sort((a, b) => a.rank - b.rank);
+  const part = FACULTY_PART.filter(hit);
+
+  el("v-faculty").innerHTML = `
+    <div class="sec"><h2>學程辦公室</h2></div>
+    <article class="card pad">
+      <dl class="kv">
+        <dt>時間</dt><dd>${esc(OFFICE.when)}</dd>
+        <dt>地點</dt><dd>${esc(OFFICE.place)}</dd>
+      </dl>
+      <div class="block" style="margin-top:12px">
+        ${OFFICE.staff.map(x => `<div class="frow">
+          <div class="fname"><b>${esc(x.name)}</b><span>${esc(x.title)}</span></div>
+          <div class="fcontact">分機 ${esc(x.ext)}　<a href="mailto:${esc(x.email)}">${esc(x.email)}</a></div>
+        </div>`).join("")}
+      </div>
+      <div class="hint" style="margin-top:10px">${esc(OFFICE.saturday)}</div>
+    </article>
+
+    <div class="sec"><h2>師資</h2><span class="hint">${full.length + part.length} 位</span></div>
+    <div class="tools"><div class="search">
+      <svg width="18" height="18" fill="none" stroke="var(--muted)"><use href="#i-search"/></svg>
+      <input id="fq" placeholder="搜尋專長、姓名、學歷…例如「不動產估價」" value="${esc(F_Q)}"
+        oninput="F_Q=this.value;render_faculty();el('fq').focus()">
+    </div></div>
+    ${!ME ? `<div class="notice-lock">分機與 Email <b>登入後才看得到</b>。
+      這是新生手冊上的內部聯絡資訊，公開放在網頁上會被爬蟲收走。</div>` : ""}
+
+    ${full.length ? `<div class="sec"><h2 style="font-size:.9rem;color:var(--muted)">專任教師</h2></div>
+      ${full.map(facultyCard).join("")}` : ""}
+    ${part.length ? `<div class="sec"><h2 style="font-size:.9rem;color:var(--muted)">兼任教師</h2></div>
+      ${part.map(facultyCard).join("")}` : ""}
+    ${!full.length && !part.length ? emptyBox("沒有符合的老師",
+      "換個關鍵字試試。可以搜專長（例如「不動產估價」「都市防災」「GIS」）、姓名或學歷。") : ""}
+
+    <div class="hint" style="margin-top:12px">
+      資料整理自 115 學年度新生手冊。老師的分機與研究室可能異動，
+      正式聯絡前建議先向學程辦公室確認。</div>`;
+}
+/* 老師的逢甲頁面。
+   ⛔ 沒有 fcuId 的不要用猜的組連結 —— 點進去是別的老師，比沒有連結更糟。
+      改成連到學程網站搜尋，讓使用者自己看有沒有。 */
+function facultyLink(f){
+  return f.fcuId
+    ? { url:`https://mcd.fcu.edu.tw/teachers-detail/?id=${f.fcuId}&unit_id=CD16`, label:"個人介紹頁" }
+    : { url:`https://mcd.fcu.edu.tw/?s=${encodeURIComponent(f.name)}`, label:"在逢甲網站搜尋" };
+}
+function facultyCard(f){
+  const link = facultyLink(f);
+  return `<article class="card pad fcard">
+    <div class="frow">
+      <div class="fname"><b>${esc(f.name)}</b><span>${esc(f.title)}</span></div>
+      ${ME && f.ext ? `<div class="fcontact">分機 ${esc(f.ext)}<br>
+        ${f.email ? f.email.split("、").map(e =>
+          `<a href="mailto:${esc(e)}">${esc(e)}</a>`).join("<br>") : ""}</div>` : ""}
+    </div>
+    <div class="ffield">${esc(f.field)}</div>
+    <div class="hint">${esc(f.edu)}${f.note ? `　·　${esc(f.note)}` : ""}</div>
+    <a class="flink${f.fcuId ? " has" : ""}" href="${esc(link.url)}" target="_blank" rel="noopener"
+       onclick="event.stopPropagation()">${esc(link.label)} ↗</a>
+  </article>`;
 }
 
 /* ── 使用說明 ──────────────────────────────────────────────────── */
@@ -1383,9 +1462,9 @@ function render_help(){
 }
 
 /* ── 導覽 ──────────────────────────────────────────────────────── */
-const VIEWS = ["home","notices","acts","calendar","courses","members","mdetail","profile","claim","needs","ndetail","album","pdetail","me","admin","help"];
+const VIEWS = ["home","notices","acts","calendar","courses","members","mdetail","profile","claim","faculty","needs","ndetail","album","pdetail","me","admin","help"];
 const NAV_TITLES = { home:"首頁", notices:"公告", acts:"活動",
-  calendar:"行事曆", courses:"課程資訊", members:"同學名冊",
+  calendar:"行事曆", courses:"課程資訊", faculty:"師資", members:"同學名冊",
   needs:"資源交流", album:"相簿", me:"我的", admin:"班級管理", help:"使用說明" };
 
 function render(v){
