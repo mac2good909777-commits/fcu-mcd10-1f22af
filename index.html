@@ -247,6 +247,43 @@ img{max-width:100%}
 .hint{font-size:.82rem;color:var(--muted);margin-top:4px;line-height:1.7}
 
 /* ── 燈箱 ───────────────────────────── */
+/* 表單彈窗（提需求／發活動／建相簿共用一組） */
+.formwrap{position:fixed;inset:0;background:rgba(20,8,12,.55);z-index:95;display:none;
+  align-items:flex-end;justify-content:center;padding:0}
+.formwrap.on{display:flex}
+.formbox{background:var(--card);width:100%;max-width:560px;max-height:92vh;display:flex;
+  flex-direction:column;border-radius:16px 16px 0 0;box-shadow:0 -8px 40px rgba(0,0,0,.25)}
+.formhead{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;
+  border-bottom:1px solid var(--line)}
+.formhead h3{font-size:1.02rem}
+.formhead button{background:none;border:0;font-size:1.4rem;line-height:1;color:var(--muted);cursor:pointer;padding:0 4px}
+#formbody{padding:16px 18px;overflow-y:auto;flex:1}
+.ffield{margin-bottom:14px}
+.ffield label{display:block;font-size:.82rem;font-weight:600;color:var(--muted);margin-bottom:5px}
+.ffield .freq{color:var(--c-red);font-weight:500;font-size:.72rem}
+.ffield input[type=text],.ffield input[type=date],.ffield input[type=number],
+.ffield input[type=datetime-local],.ffield textarea,.ffield select{
+  width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;
+  font:inherit;font-size:.92rem;background:var(--bg);color:var(--ink)}
+.ffield textarea{resize:vertical;line-height:1.6}
+.ffield input:focus,.ffield textarea:focus,.ffield select:focus{
+  outline:none;border-color:var(--p-500);background:var(--card)}
+.ffield .hint{margin-top:5px}
+.fcheck{display:flex!important;align-items:center;gap:8px;font-weight:500!important;
+  color:var(--ink)!important;font-size:.9rem!important;cursor:pointer}
+.fcheck input{width:17px;height:17px;accent-color:var(--p-500)}
+.formfoot{display:flex;gap:8px;padding:12px 18px;border-top:1px solid var(--line);align-items:center}
+.formfoot .grow{flex:1}
+#formerr{margin:0 18px 12px;padding:9px 12px;border-radius:9px;font-size:.85rem;
+  background:#fdeaec;color:var(--c-red);border:1px solid #f5c6cb}
+@media(min-width:640px){.formwrap{align-items:center}.formbox{border-radius:16px}}
+/* 相簿沒有封面時的色塊 */
+.acover{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  font-size:2rem;background:linear-gradient(140deg,var(--p-300),var(--p-700))}
+.acard a{display:block;width:100%;height:100%;color:inherit;text-decoration:none}
+.aedit{position:absolute;top:6px;right:6px;z-index:2;background:rgba(255,255,255,.92);
+  border:0;border-radius:6px;padding:3px 9px;font-size:.74rem;font-weight:600;
+  color:var(--p-700);cursor:pointer}
 .lightbox{position:fixed;inset:0;background:rgba(10,5,15,.92);z-index:90;display:none;
   align-items:center;justify-content:center;padding:20px}
 .lightbox.on{display:flex}
@@ -505,6 +542,23 @@ img{max-width:100%}
   <div id="drawerlist"></div>
 </aside>
 
+<!-- 表單彈窗：提需求／發公告活動／建相簿共用。內容由 forms.js 的 openForm() 填。 -->
+<div class="formwrap" id="formwrap" onclick="if(event.target===this)closeForm()">
+  <div class="formbox">
+    <div class="formhead"><h3 id="formtitle"></h3>
+      <button onclick="closeForm()" aria-label="關閉">&times;</button></div>
+    <div id="formbody" data-keys="" ></div>
+    <div id="formerr" style="display:none"></div>
+    <div class="formfoot">
+      <button class="btn btn-ghost btn-sm" id="formdel" onclick="formDelete()"
+        style="color:var(--c-red)">刪除</button>
+      <span class="grow"></span>
+      <button class="btn btn-ghost" onclick="closeForm()">取消</button>
+      <button class="btn btn-primary" id="formsave" onclick="submitForm()">儲存</button>
+    </div>
+  </div>
+</div>
+
 <div class="lightbox" id="lightbox" onclick="closeLightbox()">
   <img id="lightimg" alt=""><button class="lightx">×</button>
 </div>
@@ -555,13 +609,14 @@ img{max-width:100%}
 <!-- ⚠️ 每支 js 後面的 ?v= 是快取破解用的。
      GitHub Pages 會讓瀏覽器把 js 快取住，不加這個的話我改了東西，
      同學那邊還是舊版，而且看不出來 —— 每次改版把 v 一起換掉。 -->
-<script src="config.js?v=50"></script>
-<script src="school.js?v=50"></script>
-<script src="faculty.js?v=50"></script>
-<script src="data.js?v=50"></script>
+<script src="config.js?v=51"></script>
+<script src="school.js?v=51"></script>
+<script src="faculty.js?v=51"></script>
+<script src="data.js?v=51"></script>
 <!-- private.js 已於 2026-08-29 刪除：公司職稱改由資料庫按可見範圍吐出。
      ⛔ 不要為了「本機測試方便」把它加回來 —— 那等於再開一個公開的個資副本。 -->
-<script src="backend.js?v=50"></script>
-<script src="app.js?v=50"></script>
+<script src="backend.js?v=51"></script>
+<script src="app.js?v=51"></script>
+<script src="forms.js?v=51"></script>
 </body>
 </html>

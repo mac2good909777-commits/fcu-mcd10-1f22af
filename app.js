@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v5.0　2026-08-30";
+const VERSION = "v5.1　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -77,6 +77,16 @@ const db = {
     if(LIVE) return SB.profiles();
     return null;                       // 版型模式走舊路徑
   },
+  /* 寫入類的動作版型模式一律擋掉並說原因 ——
+     假裝成功會讓人以為存進去了，那比不能用更糟。 */
+  saveNeed:    n => LIVE ? SB.saveNeed(n)         : Promise.reject(new Error("版型模式不能寫入")),
+  closeNeed:   (id, done, helpers) => LIVE ? SB.closeNeed(id, done, helpers) : Promise.reject(new Error("版型模式不能寫入")),
+  deleteNeed:  id => LIVE ? SB.deleteNeed(id)     : Promise.reject(new Error("版型模式不能寫入")),
+  savePost:    d => LIVE ? SB.savePost(d)         : Promise.reject(new Error("版型模式不能寫入")),
+  deletePost:  id => LIVE ? SB.deletePost(id)     : Promise.reject(new Error("版型模式不能寫入")),
+  saveAlbum:   d => LIVE ? SB.saveAlbum(d)        : Promise.reject(new Error("版型模式不能寫入")),
+  deleteAlbum: id => LIVE ? SB.deleteAlbum(id)    : Promise.reject(new Error("版型模式不能寫入")),
+
   async saveProfile(fields, vis){
     if(LIVE) return SB.saveProfile(fields, vis);
     const all = loadEdits();
@@ -462,7 +472,7 @@ function render_notices(){
                                 || new Date(b.created_at) - new Date(a.created_at));
   el("v-notices").innerHTML = `
     <div class="sec"><h2>公告與問卷</h2>
-      ${isOfficer() ? `<button class="more" onclick="alert('版型階段：正式版可在這裡發布')">＋ 發布</button>` : ""}</div>
+      ${isOfficer() ? `<button class="more" onclick="postForm('notice')">＋ 發布</button>` : ""}</div>
     ${list.length ? list.map(p => p.kind === "survey" ? surveyCard(p) : noticeCard(p)).join("")
                   : emptyBox("還沒有公告或問卷",
                       "班務公告、班費說明、問卷調查都放這裡。問卷可以標必填與截止日；完成人數由幹部手動更新 —— 系統刻意不記錄誰填了誰沒填。")}`;
@@ -494,7 +504,7 @@ function render_acts(){
   });
   el("v-acts").innerHTML = `
     <div class="sec"><h2>活動</h2>
-      ${isOfficer() ? `<button class="more" onclick="alert('版型階段：正式版可在這裡發布')">＋ 發布</button>` : ""}</div>
+      ${isOfficer() ? `<button class="more" onclick="postForm('event')">＋ 發布</button>` : ""}</div>
     <div class="tools"><div class="chips">
       ${[["all","全部"],["班級","班級活動"],["學程","學程活動"]].map(([k,l]) =>
         `<button class="chip${ACT_TAB===k?" on":""}" onclick="ACT_TAB='${k}';render('acts')">${l}</button>`).join("")}
@@ -562,8 +572,7 @@ function render_pdetail(){
           位子可以讓給候補的同學。</div>` : ""}` : ""}
       ${isOfficer() ? `<div class="block"><h4>幹部工具</h4>
         <div class="actions">
-          <button class="btn btn-ghost btn-sm" onclick="alert('版型階段：正式版會列出報名名單與餐點統計')">報名名單</button>
-          <button class="btn btn-ghost btn-sm" onclick="alert('版型階段：正式版是現場報到台')">報到台</button>
+          <button class="btn btn-ghost btn-sm" onclick="postForm('${p.kind}', ${p.id})">編輯這則</button>
         </div></div>` : ""}
     </article>`;
 }
@@ -610,7 +619,7 @@ function render_members(){
       <div class="search">
         <svg width="18" height="18" fill="none" stroke="var(--muted)"><use href="#i-search"/></svg>
         <input id="mq" placeholder="${ME ? "搜尋姓名、公司、職稱、學歷…" : "搜尋姓名…"}" value="${esc(M_FILTER.q)}"
-          oninput="M_FILTER.q=this.value;render_members();el('mq').focus()">
+          oninput="M_FILTER.q=this.value;render_members();refocus('mq')">
       </div>
       <div class="chips">
         <button class="chip${M_FILTER.group==="all"?" on":""}" onclick="M_FILTER.group='all';render_members()">全部 ${MEMBERS.filter(m => (m.kind||"student") === "student").length}</button>
@@ -962,7 +971,7 @@ function render_needs(){
   const list = NEEDS.filter(n => NEED_TAB === "all" ? true : NEED_TAB === "open" ? !n.done : n.done);
   el("v-needs").innerHTML = `
     <div class="sec"><h2>資源交流</h2>
-      ${ME ? `<button class="more" onclick="alert('版型階段：正式版可在這裡提需求')">＋ 我要提</button>` : ""}</div>
+      ${ME ? `<button class="more" onclick="needForm()">＋ 我要提</button>` : ""}</div>
     <div class="tools"><div class="chips">
       ${[["open","進行中"],["done","已解決"],["all","全部"]].map(([k,l]) =>
         `<button class="chip${NEED_TAB===k?" on":""}" onclick="NEED_TAB='${k}';render('needs')">${l}</button>`).join("")}
@@ -1006,8 +1015,15 @@ function render_ndetail(){
         </div></div>
       ${n.done && n.helpers?.length ? `<div class="block"><h4>誰接住的</h4>
         <div class="pills">${n.helpers.map(h => `<span class="pill">${esc(nameOf(h))}</span>`).join("")}</div></div>` : ""}
-      ${ME && !n.done ? `<div class="actions" style="margin-top:14px">
-        <button class="btn btn-primary" onclick="alert('版型階段：正式版會通知提出者')">我可以幫忙</button></div>` : ""}
+      ${ME ? (ME.id === n.author_id ? `<div class="actions" style="margin-top:14px">
+        <button class="btn btn-primary" onclick="toggleNeed(${n.id}, ${!n.done})">
+          ${n.done ? "改回徵求中" : "標記已解決"}</button>
+        <button class="btn btn-ghost" onclick="needForm(${n.id})">編輯</button></div>`
+        : !n.done ? `<div class="actions" style="margin-top:14px">
+        <a class="btn btn-primary" href="${escAttr(contactOf(n.author_id))}" target="_blank" rel="noopener">
+          我可以幫忙</a></div>
+        <div class="hint" style="margin-top:8px">直接私訊${esc(author?.name || "提出者")}談，
+          談成之後請對方回來把這則標記已解決。</div>` : "") : ""}
     </article>`;
 }
 
@@ -1015,16 +1031,27 @@ function render_ndetail(){
 function render_album(){
   el("v-album").innerHTML = `
     <div class="sec"><h2>班級相簿</h2>
-      ${isOfficer() ? `<button class="more" onclick="alert('版型階段：正式版可建立相簿')">＋ 建立</button>` : ""}</div>
+      ${isOfficer() ? `<button class="more" onclick="albumForm()">＋ 新增</button>` : ""}</div>
+    <div class="hint" style="margin-bottom:10px">照片放在 <b>Google 相簿</b>，這裡只放入口。
+      不自己做一套上傳：班上本來就在用 Google 相簿，
+      而且大家可以直接把自己拍的丟進同一本，不用等誰整理。</div>
     ${!ALBUMS.length ? emptyBox("還沒有相簿",
-        "聚餐、參訪、開學典禮的照片可以建成一本一本的相簿。正式版照片走 Supabase Storage，上傳前會先壓縮 —— 手機直出一張 5MB，一次聚會就吃光免費額度。") : ""}
-    <div class="agrid">${ALBUMS.map(a => `
-      <div class="acard" onclick="${a.count ? `openLightbox('${escAttr(a.cover)}')` : `alert('這本相簿還沒有照片')`}">
-        <img src="${esc(a.cover)}" alt="">
-        <div class="cap">${esc(a.title)}<span>${esc(a.date)}　${a.count} 張</span></div>
-      </div>`).join("")}</div>
-    <div class="hint" style="margin-top:12px">版型階段用示意圖。正式版：照片上傳走 Supabase Storage，
-      壓縮後再上傳（手機直出的照片一張 5MB，一次聚會就會把免費額度吃光）。</div>`;
+        isOfficer()
+          ? "在 Google 相簿開一本共享相簿，把連結貼進來就好。記得開「允許共同編輯者新增相片」，同學才能自己上傳。"
+          : "聚餐、參訪、開學典禮的照片會建成一本一本的相簿，由幹部開好共享相簿後放上來。") : ""}
+    <div class="agrid">${ALBUMS.map(albumCard).join("")}</div>`;
+}
+function albumCard(a){
+  const url = safeUrl(a.link);
+  return `<div class="acard">
+    <a href="${url ? escAttr(url) : "#/album"}" ${url ? `target="_blank" rel="noopener"` : ""}>
+      ${a.cover && safeUrl(a.cover) ? `<img src="${escAttr(safeUrl(a.cover))}" alt="">`
+                                    : `<div class="acover">📷</div>`}
+      <div class="cap">${esc(a.title)}
+        <span>${esc(a.date || "")}${a.note ? "　" + esc(a.note) : ""}</span></div>
+    </a>
+    ${isOfficer() ? `<button class="aedit" onclick="albumForm(${a.id})">編輯</button>` : ""}
+  </div>`;
 }
 
 /* ── 我的 ──────────────────────────────────────────────────────── */
@@ -1273,10 +1300,12 @@ function render_courses(){
   const nextF = FORUM.sessions.find(x => x.date >= today);
 
   /* 排序原則：【會變動的放上面，固定的放下面】。
-     每學期都不一樣的（下一場論壇、本學期週曆）擺前面，
-     四年不動的（課程地圖、查課入口）收在後面。
+     每學期都不一樣的（下一場論壇、本學期六堂論壇）擺前面。
      ⛔ 不要照「重要性」排 —— 課程地圖看起來很重要，
-        但同學一學期只會看它一次，每週要看的是週曆。 */
+        但同學一學期只會看它一次。
+     週曆雖然常看，但擺在課程地圖正上方 ——
+     三張課表（本學期、碩二上下、課程地圖）連在一起才好對照，
+     拆開放反而要上下捲。 */
   el("v-courses").innerHTML = `
     <div class="sec"><h2>本學期課程</h2><span class="hint">${esc(t.term)}</span></div>
 
@@ -1292,13 +1321,6 @@ function render_courses(){
         <div class="seatline">還有 <b>${Math.round((new Date(nextF.date) - new Date(today)) / 86400000)}</b> 天</div>
       </div>
     </article>` : ""}
-
-    <div class="sec"><h2>本學期週曆</h2><span class="hint">碩一上</span></div>
-    ${weekGrid(t.rows)}
-    <div class="hint" style="margin-top:8px">
-      平日晚間都是 18:10–21:00，週六早上 09:10–11:00、下午 13:10–16:00。
-      <b>星期四沒有課</b>；<b>週一晚上兩門課同時開</b>，國土計畫專論與結構物安全鑑定實務只能二擇一。
-      資料出自${esc(t.source)}，實際時間與教室仍以學校課表與授課老師公告為準。</div>
 
     <div class="sec"><h2>建設發展創新論壇</h2></div>
     <div class="hint" style="margin-bottom:10px">
@@ -1322,7 +1344,12 @@ function render_courses(){
       <div class="bodytext" style="margin-top:0">${esc(FORUM.grading_text)}</div>
     </article>
 
-    <div class="sec"><h2 style="color:var(--muted)">── 以下不會變 ──</h2></div>
+    <div class="sec"><h2>本學期週曆</h2><span class="hint">碩一上</span></div>
+    ${weekGrid(t.rows)}
+    <div class="hint" style="margin-top:8px">
+      平日晚間都是 18:10–21:00，週六早上 09:10–11:00、下午 13:10–16:00。
+      <b>星期四沒有課</b>；<b>週一晚上兩門課同時開</b>，國土計畫專論與結構物安全鑑定實務只能二擇一。
+      資料出自${esc(t.source)}，實際時間與教室仍以學校課表與授課老師公告為準。</div>
 
     <div class="sec"><h2>課程地圖</h2></div>
     <article class="card pad">
@@ -1383,6 +1410,12 @@ function render_courses(){
       所以每格是陣列不是單一課程 —— 這是課表最容易寫錯的地方。
    ⚠️ 欄位固定用課表原本的星期集合（碩一沒有週四），不要自己補齊
       一到五 —— 補出來的空欄會讓人以為那天有課只是還沒排。 */
+/* 搜尋框每打一個字就整塊重畫，input 是新的，游標會回到最前面 ——
+   打「gis」會變成「sig」。補回焦點後要把游標壓回字尾。 */
+function refocus(id){
+  const i = el(id); if(!i) return;
+  i.focus(); const n = i.value.length; i.setSelectionRange(n, n);
+}
 function weekGrid(rows){
   const DAY_ORDER = ["一","二","三","四","五","六","日"];
   const days = DAY_ORDER.filter(d => rows.some(r => r.day === d));
@@ -1445,7 +1478,7 @@ function render_faculty(){
     <div class="tools"><div class="search">
       <svg width="18" height="18" fill="none" stroke="var(--muted)"><use href="#i-search"/></svg>
       <input id="fq" placeholder="搜尋專長、姓名、學歷…例如「不動產估價」" value="${esc(F_Q)}"
-        oninput="F_Q=this.value;render_faculty();el('fq').focus()">
+        oninput="F_Q=this.value;render_faculty();refocus('fq')">
     </div></div>
     ${!ME ? `<div class="notice-lock">分機與 Email <b>登入後才看得到</b>。
       這是新生手冊上的內部聯絡資訊，公開放在網頁上會被爬蟲收走。</div>` : ""}
@@ -1566,6 +1599,13 @@ function paintDrawer(){
 }
 function openDrawer(){ el("drawer").classList.add("on"); el("scrim").classList.add("on"); }
 function closeDrawer(){ el("drawer").classList.remove("on"); el("scrim").classList.remove("on"); }
+/* 「我可以幫忙」要能真的聯絡到人。
+   ⛔ 不要做站內私訊 —— 那需要通知系統，沒人會回來看網站收信。
+      班上本來就用 LINE，直接把人帶過去最有效。 */
+function contactOf(id){
+  const m = memberOf(id);
+  return safeUrl(m?.line_url) || (m?.email ? "mailto:" + m.email : "#/member/" + id);
+}
 function openLightbox(url){ el("lightimg").src = url; el("lightbox").classList.add("on"); }
 function closeLightbox(){ el("lightbox").classList.remove("on"); }
 

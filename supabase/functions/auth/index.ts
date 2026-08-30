@@ -12,6 +12,9 @@
 //   profiles     依「誰在看」吐出遮蔽過的個人資料
 //   save_profile 存自己的資料
 //   signups      我報名了哪幾場 / 報名 / 取消
+//   save_need / close_need / delete_need     資源交流（本人）
+//   save_post / delete_post                  公告問卷活動（幹部）
+//   save_album / delete_album                相簿（幹部）
 //
 // ⛔ 為什麼這些也放進來，而不是讓前端直接打 PostgREST：
 //    這個專案的 JWT 簽章金鑰是 ECC(P-256)，我們手上只有 legacy 的
@@ -361,6 +364,76 @@ Deno.serve(async (req) => {
       await db(`rpc/${fn}`, {
         method: "POST",
         body: JSON.stringify({ p_member: meId, p_post_id: Number(body.post_id) }),
+      });
+      return json({ ok: true });
+    }
+
+    // ── 資源交流 ─────────────────────────────────────────────────
+    if (action === "save_need") {
+      if (!meId) return json({ error: "請先登入" }, 401);
+      const r = await db("rpc/save_need_as", {
+        method: "POST",
+        body: JSON.stringify({
+          p_member: meId, p_id: body.id ? Number(body.id) : null,
+          p_title: String(body.title ?? "").slice(0, 200),
+          p_body: String(body.body ?? "").slice(0, 5000),
+        }),
+      });
+      return json({ ok: true, id: r });
+    }
+    if (action === "close_need") {
+      if (!meId) return json({ error: "請先登入" }, 401);
+      await db("rpc/close_need_as", {
+        method: "POST",
+        body: JSON.stringify({
+          p_member: meId, p_id: Number(body.id),
+          p_done: body.done !== false,
+          p_helpers: Array.isArray(body.helpers) ? body.helpers.map(Number) : [],
+        }),
+      });
+      return json({ ok: true });
+    }
+    if (action === "delete_need") {
+      if (!meId) return json({ error: "請先登入" }, 401);
+      await db("rpc/delete_need_as", {
+        method: "POST",
+        body: JSON.stringify({ p_member: meId, p_id: Number(body.id) }),
+      });
+      return json({ ok: true });
+    }
+
+    // ── 公告 / 問卷 / 活動（幹部）─────────────────────────────────
+    if (action === "save_post") {
+      if (!meId) return json({ error: "請先登入" }, 401);
+      const r = await db("rpc/save_post_as", {
+        method: "POST",
+        body: JSON.stringify({ p_member: meId, p_data: body.data ?? {} }),
+      });
+      return json({ ok: true, id: r });
+    }
+    if (action === "delete_post") {
+      if (!meId) return json({ error: "請先登入" }, 401);
+      await db("rpc/delete_post_as", {
+        method: "POST",
+        body: JSON.stringify({ p_member: meId, p_id: Number(body.id) }),
+      });
+      return json({ ok: true });
+    }
+
+    // ── 相簿（幹部）──────────────────────────────────────────────
+    if (action === "save_album") {
+      if (!meId) return json({ error: "請先登入" }, 401);
+      const r = await db("rpc/save_album_as", {
+        method: "POST",
+        body: JSON.stringify({ p_member: meId, p_data: body.data ?? {} }),
+      });
+      return json({ ok: true, id: r });
+    }
+    if (action === "delete_album") {
+      if (!meId) return json({ error: "請先登入" }, 401);
+      await db("rpc/delete_album_as", {
+        method: "POST",
+        body: JSON.stringify({ p_member: meId, p_id: Number(body.id) }),
       });
       return json({ ok: true });
     }

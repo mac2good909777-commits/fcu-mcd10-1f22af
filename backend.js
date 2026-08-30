@@ -284,9 +284,17 @@ const SB = {
     return rest("needs?select=id,author_id,title,body,done,helpers,created_at&order=created_at.desc");
   },
   async albums(){
-    const rows = await rest("albums?select=id,title,taken_on,cover&order=taken_on.desc");
-    return rows.map(a => ({ ...a, date: a.taken_on || "", count: 0 }));
+    const rows = await rest("albums?select=id,title,taken_on,cover,link,note&order=taken_on.desc");
+    return rows.map(a => ({ ...a, date: a.taken_on || "" }));
   },
+  // 寫入一律走 Edge Function（PostgREST 收不到我們的身分，見 sbHeaders）
+  async saveNeed(n){    const r = await authApi("save_need", n);    if(r.error) throw new Error(r.error); return r; },
+  async closeNeed(id, done, helpers){ const r = await authApi("close_need", {id, done, helpers}); if(r.error) throw new Error(r.error); return r; },
+  async deleteNeed(id){ const r = await authApi("delete_need", {id}); if(r.error) throw new Error(r.error); return r; },
+  async savePost(data){ const r = await authApi("save_post", {data});  if(r.error) throw new Error(r.error); return r; },
+  async deletePost(id){ const r = await authApi("delete_post", {id});  if(r.error) throw new Error(r.error); return r; },
+  async saveAlbum(data){const r = await authApi("save_album", {data}); if(r.error) throw new Error(r.error); return r; },
+  async deleteAlbum(id){const r = await authApi("delete_album", {id}); if(r.error) throw new Error(r.error); return r; },
   async seats(){
     const rows = await rest("v_post_seats?select=post_id,capacity,reserved_seats,taken,waiting");
     return Object.fromEntries(rows.map(r => [r.post_id, r]));
