@@ -14,7 +14,7 @@
    解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
    換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
    ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
-const CSS_V = "58";
+const CSS_V = "59";
 (function fixStaleCss(){
   if(document.documentElement.dataset.cssv === CSS_V) return;
   // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
@@ -27,7 +27,7 @@ const CSS_V = "58";
   location.replace(location.pathname + "?r=" + CSS_V);
 })();
 
-const VERSION = "v5.8　2026-08-30";
+const VERSION = "v5.9　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -409,7 +409,11 @@ function render_home(){
   const next     = events[0];
   const notices  = POSTS.filter(p => p.kind === "notice").slice(0, 3);
   const surveys  = POSTS.filter(p => p.kind === "survey");
-  const officers = MEMBERS.filter(m => m.officer).sort((a,b) => officerRank(a) - officerRank(b));
+  /* 師長排在同學前面 —— 名冊那邊也是同一個原則，兩處要一致。
+     學程主任與助教不在 OFFICER_ORDER 裡，officerRank 會給 99 而被排到最後，
+     所以要先按身分分層，再在同一層裡照職務位階排。 */
+  const officers = MEMBERS.filter(m => m.officer)
+    .sort((a,b) => (isStudent(a) - isStudent(b)) || (officerRank(a) - officerRank(b)));
 
   el("v-home").innerHTML = heroHTML() + `
     ${next ? `
