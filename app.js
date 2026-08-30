@@ -14,7 +14,7 @@
    解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
    換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
    ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
-const CSS_V = "79";
+const CSS_V = "80";
 (function fixStaleCss(){
   if(document.documentElement.dataset.cssv === CSS_V) return;
   // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
@@ -27,7 +27,7 @@ const CSS_V = "79";
   location.replace(location.pathname + "?r=" + CSS_V);
 })();
 
-const VERSION = "v7.9　2026-08-30";
+const VERSION = "v8.0　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -190,13 +190,12 @@ const VIS = {
 /* 下拉要顯示哪些選項。
    ⚠️ 已經存成隱藏值的欄位仍要列出那個選項，
       否則使用者一存檔就會被無聲改成別的範圍。 */
-/* contact=true 的欄位（手機、Email、LINE ID）不給選「公開」與「全學程校友」——
-   ⛔ 選單裡看得到就會有人選，而公開在網頁上的手機號碼會被爬蟲收走。
-      資料庫的 mask_profile 也會再擋一次，兩層都要有：
-      這一層是不要讓人誤選，那一層是就算前端被繞過也還是擋得住。 */
-const visOptions = (current, contact) =>
-  Object.entries(VIS).filter(([k, o]) =>
-    (!o.hidden || k === current) && !(contact && (k === "public" || k === "alumni")));
+/* 2026-08-30：聯絡方式也可以選「公開」，由本人自己決定。
+   ⛔ 放行的話 patch-09 一定要一起跑 —— 資料庫的 mask_profile 原本會把
+      phone/email/line_id 從 public 強制降回 class，不改那邊就會變成
+      「選了公開、顯示已儲存、實際沒生效」的沉默失敗。 */
+const visOptions = (current) =>
+  Object.entries(VIS).filter(([k, o]) => !o.hidden || k === current);
 // 我現在是什麼身分 → 我最多看得到 rank 幾的欄位
 function viewerRank(target){
   if(ME && target && ME.id === target.id) return 9;          // 自己看自己：全都看得到
@@ -249,7 +248,7 @@ const PROFILE_FIELDS = [
   { key:"line_id",  label:"LINE ID",   type:"text", vis:"class", contact:true,
     hint:"不知道自己的加好友連結在哪抓的話，填 ID 就好" },
   { key:"phone",    label:"手機",       type:"text", vis:"class", contact:true,
-    hint:"活動當天找不到人時，這是唯一有用的東西" },
+    hint:"活動當天找不到人時，這是唯一有用的東西。⚠️ 設成「公開」的話，沒登入的人也看得到，也可能被網路上的程式抓走" },
   { key:"email",    label:"Email",     type:"text", vis:"class", contact:true },
   { key:"q_why",    label:"為什麼來讀建設碩士？", type:"area", vis:"class", optional:true },
   { key:"q_thesis", label:"論文或專題想做什麼方向？", type:"area", vis:"class", optional:true },
@@ -826,7 +825,7 @@ function render_mdetail(){
       </div>` : ""}
 
       ${["line_id","phone","email"].some(k => v(k)) ? `<div class="block">
-        <h4>聯絡方式${isMe ? `<span class="hint" style="font-weight:500;margin-left:6px">只有同屆同學看得到</span>` : ""}</h4>
+        <h4>聯絡方式${isMe ? `<span class="hint" style="font-weight:500;margin-left:6px">給誰看由你自己設定</span>` : ""}</h4>
         <dl class="kv">
           ${v("line_id") ? `<dt>LINE ID</dt><dd>${esc(v("line_id"))}</dd>` : ""}
           ${v("phone") ? `<dt>手機</dt><dd><a href="tel:${escAttr(v("phone").replace(/[^0-9+]/g, ""))}">${esc(v("phone"))}</a></dd>` : ""}
@@ -942,7 +941,7 @@ function profileField(f, p){
       <label>${esc(f.label)}
         <span class="vislabel">給誰看</span>
         <select class="vissel" id="pv_${f.key}">
-          ${visOptions(vis, f.contact).map(([k, o]) =>
+          ${visOptions(vis).map(([k, o]) =>
             `<option value="${k}"${k === vis ? " selected" : ""}>${esc(o.label)}</option>`).join("")}
         </select>
       </label>
@@ -958,7 +957,7 @@ function profileField(f, p){
       <label>${esc(f.label)}
         <span class="vislabel">給誰看</span>
         <select class="vissel" id="pv_${f.key}">
-          ${visOptions(vis, f.contact).map(([k, o]) =>
+          ${visOptions(vis).map(([k, o]) =>
             `<option value="${k}"${k === vis ? " selected" : ""}>${esc(o.label)}</option>`).join("")}
         </select>
       </label>
@@ -978,7 +977,7 @@ function profileField(f, p){
     <label>${esc(f.label)}${f.optional ? `<span class="opt">選填</span>` : ""}
       <span class="vislabel">給誰看</span>
       <select class="vissel" id="pv_${f.key}">
-        ${visOptions(vis, f.contact).map(([k, o]) =>
+        ${visOptions(vis).map(([k, o]) =>
           `<option value="${k}"${k === vis ? " selected" : ""}>${esc(o.label)}</option>`).join("")}
       </select>
     </label>
