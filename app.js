@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v4.7　2026-08-30";
+const VERSION = "v4.8　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -554,7 +554,11 @@ function render_pdetail(){
 /* ── 同學名冊 ──────────────────────────────────────────────────── */
 function render_members(){
   const q = M_FILTER.q.trim().toLowerCase();
-  const list = MEMBERS.filter(m => {
+  /* ⛔ 名冊只列【同學】。老師與助教也在 members 裡（他們要能登入），
+        但混進同學名冊會讓「50 位同學」這個數字失真，組別篩選也會出現
+        不屬於任何一組的人。他們獨立一區放在最下面。 */
+  const staff = MEMBERS.filter(m => (m.kind || "student") !== "student");
+  const list = MEMBERS.filter(m => (m.kind || "student") === "student").filter(m => {
     if(M_FILTER.group !== "all" && m.group !== M_FILTER.group) return false;
     const p = profileOf(m.id);
     if(M_FILTER.ind !== "all" && (!p || p.industry !== M_FILTER.ind)) return false;
@@ -580,7 +584,8 @@ function render_members(){
                     .sort((a, b) => a.localeCompare(b, "zh-Hant")) : [];
 
   el("v-members").innerHTML = `
-    <div class="sec"><h2>同學名冊</h2><span class="hint">${list.length} / ${MEMBERS.length} 位</span></div>
+    <div class="sec"><h2>同學名冊</h2><span class="hint">${list.length} / ${
+      MEMBERS.filter(m => (m.kind || "student") === "student").length} 位</span></div>
     ${!ME ? `<div class="notice-lock">
       名冊先開放<b>姓名</b>，方便同學進來對照認領自己。<br>
       公司與職稱<b>已由新生名冊預設帶入</b>，登入後才看得到，之後也可以自己修改。</div>` : ""}
@@ -591,10 +596,10 @@ function render_members(){
           oninput="M_FILTER.q=this.value;render_members();el('mq').focus()">
       </div>
       <div class="chips">
-        <button class="chip${M_FILTER.group==="all"?" on":""}" onclick="M_FILTER.group='all';render_members()">全部 ${MEMBERS.length}</button>
+        <button class="chip${M_FILTER.group==="all"?" on":""}" onclick="M_FILTER.group='all';render_members()">全部 ${MEMBERS.filter(m => (m.kind||"student") === "student").length}</button>
         ${Object.entries(GROUPS).map(([k,g]) =>
           `<button class="chip${M_FILTER.group===k?" on":""}" onclick="M_FILTER.group='${k}';render_members()">
-            <span class="gdot" style="background:${g.color}"></span>${esc(g.short)} ${MEMBERS.filter(m=>m.group===k).length}</button>`).join("")}
+            <span class="gdot" style="background:${g.color}"></span>${esc(g.short)} ${MEMBERS.filter(m => m.group === k && (m.kind||"student") === "student").length}</button>`).join("")}
       </div>
       ${inds.length ? `<div class="chips" style="margin-top:6px">
         <button class="chip${M_FILTER.ind==="all"?" on":""}" onclick="M_FILTER.ind='all';render_members()">不分產業</button>
@@ -612,7 +617,12 @@ function render_members(){
                 <h2 style="font-size:.9rem"><span class="gdot" style="background:${groupColor(g)}"></span>${esc(groupName(g))}組</h2>
                 <span class="hint">${ms.length} 位</span></div>
               <div class="mgrid">${ms.map(memberCard).join("")}</div>`;
-          }).join("")}`;
+          }).join("")}
+    ${staff.length && M_FILTER.group === "all" && !M_FILTER.q ? `
+      <div class="sec" style="margin-top:20px">
+        <h2 style="font-size:.9rem"><span class="gdot" style="background:var(--p-700)"></span>學程師長</h2>
+        <span class="hint">${staff.length} 位</span></div>
+      <div class="mgrid">${staff.map(memberCard).join("")}</div>` : ""}`;
 }
 function memberCard(m){
   // 三組單位／職稱都放上去 —— 身兼多家的人，只顯示一個等於漏掉一半資訊

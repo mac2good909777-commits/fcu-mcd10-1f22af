@@ -225,14 +225,30 @@ function render_claim(){
       <input id="cq" placeholder="輸入自己的名字…" value="${esc(CLAIM_Q)}"
         oninput="CLAIM_Q=this.value;render_claim();el('cq').focus()">
     </div></div>
-    ${list.length ? `<div class="mgrid">${list.map(m => `
-      <div class="mcard" onclick="doClaim(${m.id}, '${escAttr(m.name)}')">
-        <div class="ava" style="background:${groupColor(m.grp)}">${esc(initials(m.name))}</div>
-        <div class="n">${esc(m.name)}</div>
-        <div class="c">${esc((GROUPS[m.grp]||{}).short || "")}</div>
-      </div>`).join("")}</div>`
+    ${list.length ? claimGroups(list)
       : emptyBox("找不到你的名字",
           "可能已經被人認領走了（也許你之前用另一個 LINE 帳號登入過），或名冊上就沒有你。找班代或幹部處理。")}`;
+}
+
+/* 認領清單依身分分組。
+   ⚠️ 不分組的話，老師與助教會夾在 50 個同學名字中間 ——
+      他們自己找不到，同學也會誤點。 */
+const KIND_LABEL = { student:"第十屆同學", teacher:"老師", staff:"助教／行政", alumni:"學長姊" };
+function claimGroups(list){
+  const order = ["student", "teacher", "staff", "alumni"];
+  return order.map(k => {
+    const ms = list.filter(m => (m.kind || "student") === k);
+    if(!ms.length) return "";
+    return `<div class="sec" style="margin-top:16px">
+        <h2 style="font-size:.9rem">${esc(KIND_LABEL[k])}</h2>
+        <span class="hint">${ms.length} 位</span></div>
+      <div class="mgrid">${ms.map(m => `
+        <div class="mcard" onclick="doClaim(${m.id}, '${escAttr(m.name)}')">
+          <div class="ava" style="background:${k === "student" ? groupColor(m.grp) : "var(--p-700)"}">${esc(initials(m.name))}</div>
+          <div class="n">${esc(m.name)}</div>
+          <div class="c">${esc(m.officer || (k === "student" ? (GROUPS[m.grp]||{}).short || "" : KIND_LABEL[k]))}</div>
+        </div>`).join("")}</div>`;
+  }).join("");
 }
 async function doClaim(id, name){
   if(!confirm(`確定你是「${name}」嗎？\n\n選錯了自己改不回來，要找幹部解除綁定。`)) return;
@@ -254,7 +270,7 @@ async function doClaim(id, name){
 const SB = {
   async members(){
     // ⚠️ confirmed = 本人確認過資料才會是 true。名冊靠它顯示「尚未填寫」。
-    const rows = await rest("v_members?select=id,cohort,sort,name,grp,officer,status,claimed,confirmed&order=sort.asc");
+    const rows = await rest("v_members?select=id,cohort,sort,name,grp,officer,status,kind,claimed,confirmed&order=sort.asc");
     // grp → group：前端一路都叫 group，這裡轉一次就好，
     // 不要讓 render 那邊到處判斷兩種名字。
     return rows.map(r => ({ ...r, group: r.grp }));
