@@ -14,7 +14,7 @@
    解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
    換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
    ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
-const CSS_V = "84";
+const CSS_V = "85";
 (function fixStaleCss(){
   if(document.documentElement.dataset.cssv === CSS_V) return;
   // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
@@ -27,7 +27,7 @@ const CSS_V = "84";
   location.replace(location.pathname + "?r=" + CSS_V);
 })();
 
-const VERSION = "v8.4　2026-08-30";
+const VERSION = "v8.5　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -951,10 +951,21 @@ function render_profile(){
 function profileField(f, p){
   const val = p[f.key] || "";
   const vis = p.vis?.[f.key] || f.vis;
+  /* 用顏色分三種狀態，因為對填的人來說這是三種不同的動作：
+       名冊帶入（有內容）→ 只要看一眼確認對不對
+       還沒填            → 這才是真正要動手的地方
+       選填              → 有空再說
+     ⛔ 不要只靠「有沒有字」判斷 —— 名冊帶入的欄位就算是空的，
+        也不該跟「一句話自介」用同一種提示，那是兩件事。 */
+  const state = f.seed ? (val ? "seed" : "todo")
+              : f.optional ? "opt"
+              : (val ? "done" : "todo");
+  const badge = { seed:"名冊帶入", todo:"待填寫", opt:"選填", done:"已填" }[state];
+  const cls = `field f-${state}${f.key_field ? " key" : ""}`;
   if(f.type === "pair"){
     // 一行兩格：左邊單位、右邊職稱，共用一個公開範圍
-    return `<div class="field">
-      <label>${esc(f.label)}
+    return `<div class="${cls}">
+      <label>${esc(f.label)}<span class="fstate">${badge}</span>
         <span class="vislabel">給誰看</span>
         <select class="vissel" id="pv_${f.key}">
           ${visOptions(vis).map(([k, o]) =>
@@ -969,8 +980,8 @@ function profileField(f, p){
     </div>`;
   }
   if(f.type === "combo"){
-    return `<div class="field">
-      <label>${esc(f.label)}
+    return `<div class="${cls}">
+      <label>${esc(f.label)}<span class="fstate">${badge}</span>
         <span class="vislabel">給誰看</span>
         <select class="vissel" id="pv_${f.key}">
           ${visOptions(vis).map(([k, o]) =>
@@ -989,8 +1000,8 @@ function profileField(f, p){
     : f.type === "select"
       ? `<select id="pf_${f.key}"></select>`   /* 目前沒有純下拉的欄位，保留分支備用 */
       : `<input id="pf_${f.key}" value="${esc(val)}">`;
-  return `<div class="field${f.key_field ? " key" : ""}">
-    <label>${esc(f.label)}${f.optional ? `<span class="opt">選填</span>` : ""}
+  return `<div class="${cls}">
+    <label>${esc(f.label)}<span class="fstate">${badge}</span>
       <span class="vislabel">給誰看</span>
       <select class="vissel" id="pv_${f.key}">
         ${visOptions(vis).map(([k, o]) =>

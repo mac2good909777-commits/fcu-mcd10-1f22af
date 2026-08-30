@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-TW" data-cssv="84">
+<html lang="zh-TW" data-cssv="85">
 <head>
 <meta charset="UTF-8">
 <meta name="robots" content="noindex, nofollow">
@@ -553,6 +553,32 @@ img{max-width:100%}
 /* 媒合的關鍵欄位：視覺上要比其他欄重 */
 .field.key{background:#fff9f0;border:1px solid #f6e3c8;border-radius:var(--r-sm);padding:11px 12px}
 .field.key label{color:var(--warn)}
+
+/* ── 欄位狀態的顏色 ────────────────────────────────
+   ⚠️ 顏色只是輔助，每一欄同時也有文字標籤 ——
+      色盲的人與黑白列印都要看得懂，不能只靠顏色傳達。 */
+.field{border-left:3px solid transparent;padding-left:9px}
+.fstate{font-size:.66rem;font-weight:800;letter-spacing:.5px;margin-left:6px;
+  padding:1px 6px;border-radius:20px;vertical-align:1px;white-space:nowrap}
+
+/* 還沒填 —— 真正要動手的地方，最醒目 */
+.field.f-todo{border-left-color:var(--p-500);background:#fdf4f5}
+.field.f-todo .fstate{background:var(--p-500);color:#fff}
+.field.f-todo input,.field.f-todo textarea{border-color:#e0b4bb;background:#fff}
+
+/* 名冊帶入 —— 已經有內容，只要確認 */
+.field.f-seed{border-left-color:#7FB3D5;background:#f5fafd}
+.field.f-seed .fstate{background:#DCEEF8;color:#1F5F82}
+
+/* 自己填過了 */
+.field.f-done{border-left-color:#93C529;background:#f8fbf1}
+.field.f-done .fstate{background:#EAF4D6;color:#4E6B12}
+
+/* 選填 —— 有空再說，不要搶注意力 */
+.field.f-opt{border-left-color:var(--line)}
+.field.f-opt .fstate{background:var(--chip);color:var(--muted)}
+
+.field.key{border-left-color:var(--c-orange)}
 .qsec{margin-top:6px;padding:2px 14px 8px;background:var(--line-soft);border-radius:var(--r-sm)}
 
 .helpdoc h3{font-size:1.02rem;margin:18px 0 6px}
@@ -676,14 +702,14 @@ img{max-width:100%}
 <!-- ⚠️ 每支 js 後面的 ?v= 是快取破解用的。
      GitHub Pages 會讓瀏覽器把 js 快取住，不加這個的話我改了東西，
      同學那邊還是舊版，而且看不出來 —— 每次改版把 v 一起換掉。 -->
-<script src="config.js?v=84"></script>
-<script src="school.js?v=84"></script>
-<script src="faculty.js?v=84"></script>
-<script src="data.js?v=84"></script>
+<script src="config.js?v=85"></script>
+<script src="school.js?v=85"></script>
+<script src="faculty.js?v=85"></script>
+<script src="data.js?v=85"></script>
 <!-- private.js 已於 2026-08-29 刪除：公司職稱改由資料庫按可見範圍吐出。
      ⛔ 不要為了「本機測試方便」把它加回來 —— 那等於再開一個公開的個資副本。 -->
-<script src="backend.js?v=84"></script>
-<script src="app.js?v=84"></script>
-<script src="forms.js?v=84"></script>
+<script src="backend.js?v=85"></script>
+<script src="app.js?v=85"></script>
+<script src="forms.js?v=85"></script>
 </body>
 </html>
