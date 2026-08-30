@@ -360,9 +360,13 @@ img{max-width:100%}
 .week{border-collapse:collapse;width:100%;min-width:640px;font-size:.78rem}
 .week th,.week td{border:1px solid var(--line);vertical-align:top;padding:6px}
 .week th{background:var(--chip);color:var(--chip-text);font-weight:800;text-align:center}
-.week .tcorner{width:78px;background:var(--card)}
-.week .tslot{width:78px;background:var(--card);color:var(--muted);font-weight:700;
-  font-size:.72rem;white-space:pre-line;line-height:1.4;text-align:center}
+.week .tcorner{width:92px;background:var(--card)}
+.week .tslot{width:92px;background:var(--card);color:var(--muted);font-weight:700;
+  font-size:.72rem;line-height:1.45;text-align:center}
+/* 節次擺在時間上面：學校公告（加退選、教室調動、補課）一律講節次，
+   只寫時間對不起來 */
+.week .tslot .pnum{display:block;color:var(--p-700);font-size:.7rem;
+  font-weight:800;margin-bottom:2px}
 .week td{min-width:112px}
 .wcls{border-left:3px solid var(--p-500);background:var(--line-soft);
   border-radius:6px;padding:6px 8px;line-height:1.45}
@@ -513,12 +517,12 @@ img{max-width:100%}
 <!-- ⚠️ 每支 js 後面的 ?v= 是快取破解用的。
      GitHub Pages 會讓瀏覽器把 js 快取住，不加這個的話我改了東西，
      同學那邊還是舊版，而且看不出來 —— 每次改版把 v 一起換掉。 -->
-<script src="config.js?v=40"></script>
-<script src="school.js?v=40"></script>
-<script src="data.js?v=40"></script>
+<script src="config.js?v=41"></script>
+<script src="school.js?v=41"></script>
+<script src="data.js?v=41"></script>
 <!-- private.js 已於 2026-08-29 刪除：公司職稱改由資料庫按可見範圍吐出。
      ⛔ 不要為了「本機測試方便」把它加回來 —— 那等於再開一個公開的個資副本。 -->
-<script src="backend.js?v=40"></script>
-<script src="app.js?v=40"></script>
+<script src="backend.js?v=41"></script>
+<script src="app.js?v=41"></script>
 </body>
 </html>
