@@ -14,7 +14,7 @@
    解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
    換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
    ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
-const CSS_V = "68";
+const CSS_V = "69";
 (function fixStaleCss(){
   if(document.documentElement.dataset.cssv === CSS_V) return;
   // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
@@ -27,7 +27,7 @@ const CSS_V = "68";
   location.replace(location.pathname + "?r=" + CSS_V);
 })();
 
-const VERSION = "v6.8　2026-08-30";
+const VERSION = "v6.9　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -1255,6 +1255,55 @@ const calWeekday = iso =>
 
 let CAL_TAB = "class";     // class 停課日 / admin 行政日程
 
+/* 建設發展創新論壇：六場都有固定日期，本質上就是行事曆的東西。
+   ⛔ 不要留在「本學期」分頁 —— 那頁講的是每週固定的課表，
+      六個一次性的日期夾在裡面，兩邊都變難讀。 */
+const nextForum = today => FORUM.sessions.find(x => x.date >= today);
+
+/* 「下一場」是即將發生的事，跟「下次沒課」一樣要擺最上面；
+   六場的完整清單是查閱用的，放最後。同一頁，但不擠在一起。 */
+function forumNextHTML(today){
+  const nextF = nextForum(today);
+  return `
+    ${nextF ? `<article class="card bigcard">
+      <div class="band">
+        <div class="kicker">下一場　建設發展創新論壇（必修）</div>
+        <div class="t">${esc(nextF.title)}${nextF.speaker ? `　講師：${esc(nextF.speaker)}` : ""}</div>
+      </div>
+      <div class="body">
+        <div class="meta"><span>🗓 <b>${nextF.date.slice(5).replace("-", "/")}（${calWeekday(nextF.date)}）</b>
+          　${esc(nextF.time)}　第 ${nextF.week} 週</span></div>
+        <div class="meta" style="margin-top:5px"><span>📍 ${esc(nextF.place)}</span></div>
+        <div class="seatline">還有 <b>${Math.round((new Date(nextF.date) - new Date(today)) / 86400000)}</b> 天</div>
+      </div>
+    </article>` : ""}`;
+}
+function forumListHTML(today){
+  const nextF = nextForum(today);
+  return `
+    <div class="sec"><h2>建設發展創新論壇</h2></div>
+    <div class="hint" style="margin-bottom:10px">
+      碩一必修 1 學分，整學期六堂 —— 五次論壇加一次師生座談會，
+      多數排在週六下午在紀 301，但有三場改時間或改地點，出門前先確認一下。</div>
+    <article class="card">
+      ${FORUM.sessions.map(x => {
+        const past = x.date < today;
+        return `<div class="calrow${past ? " past" : ""}${x === nextF ? " next" : ""}">
+          <div class="caldate wide"><b>${x.date.slice(5).replace("-", "/")}</b>
+            <span>第 ${x.week} 週</span></div>
+          <div class="calbody">
+            <div class="caltext"><b>${esc(x.title)}</b>${x.speaker ? `　講師：${esc(x.speaker)}` : ""}</div>
+            <div class="hint">${esc(x.time)}　${esc(x.place)}</div>
+          </div>
+        </div>`;
+      }).join("")}
+    </article>
+    <article class="card pad" style="margin-top:12px">
+      <h4 style="font-size:.86rem;color:var(--muted);letter-spacing:.5px;margin-bottom:6px">怎麼算分</h4>
+      <div class="bodytext" style="margin-top:0">${esc(FORUM.grading_text)}</div>
+    </article>`;
+}
+
 function render_calendar(){
   const today = twDate(new Date());
   const sched = CLASS_SCHEDULE;
@@ -1282,12 +1331,16 @@ function render_calendar(){
       </div>
     </article>` : ""}
 
+    ${forumNextHTML(today)}
+
     <div class="tools" style="margin-top:16px"><div class="chips">
       <button class="chip${CAL_TAB==="class"?" on":""}" onclick="CAL_TAB='class';render('calendar')">上課與放假</button>
       <button class="chip${CAL_TAB==="admin"?" on":""}" onclick="CAL_TAB='admin';render('calendar')">行政日程</button>
     </div></div>
 
-    ${CAL_TAB === "class" ? classScheduleHTML(today) : adminCalendarHTML(today, nextAdmin)}`;
+    ${CAL_TAB === "class" ? classScheduleHTML(today) : adminCalendarHTML(today, nextAdmin)}
+
+    ${forumListHTML(today)}`;
 }
 
 /* 那天原本有哪幾門課 —— 只講「11/28 沒課」沒有用，
@@ -1396,7 +1449,6 @@ function adminCalendarHTML(today, next){
       在這裡重印只會把真正要看的東西往下推。要查的人給連結就夠。 */
 function render_courses(){
   const c = COURSE_INFO, t = THIS_TERM, today = twDate(new Date());
-  const nextF = FORUM.sessions.find(x => x.date >= today);
 
   /* 排序原則：【會變動的放上面，固定的放下面】。
      每學期都不一樣的（下一場論壇、本學期六堂論壇）擺前面。
@@ -1407,41 +1459,6 @@ function render_courses(){
      拆開放反而要上下捲。 */
   el("v-courses").innerHTML = `
     <div class="sec"><h2>本學期課程</h2><span class="hint">${esc(t.term)}</span></div>
-
-    ${nextF ? `<article class="card bigcard">
-      <div class="band">
-        <div class="kicker">下一場　建設發展創新論壇（必修）</div>
-        <div class="t">${esc(nextF.title)}${nextF.speaker ? `　講師：${esc(nextF.speaker)}` : ""}</div>
-      </div>
-      <div class="body">
-        <div class="meta"><span>🗓 <b>${nextF.date.slice(5).replace("-", "/")}（${calWeekday(nextF.date)}）</b>
-          　${esc(nextF.time)}　第 ${nextF.week} 週</span></div>
-        <div class="meta" style="margin-top:5px"><span>📍 ${esc(nextF.place)}</span></div>
-        <div class="seatline">還有 <b>${Math.round((new Date(nextF.date) - new Date(today)) / 86400000)}</b> 天</div>
-      </div>
-    </article>` : ""}
-
-    <div class="sec"><h2>建設發展創新論壇</h2></div>
-    <div class="hint" style="margin-bottom:10px">
-      碩一必修 1 學分，整學期六堂 —— 五次論壇加一次師生座談會，
-      多數排在週六下午在紀 301，但有三場改時間或改地點，出門前先確認一下。</div>
-    <article class="card">
-      ${FORUM.sessions.map(x => {
-        const past = x.date < today;
-        return `<div class="calrow${past ? " past" : ""}${x === nextF ? " next" : ""}">
-          <div class="caldate wide"><b>${x.date.slice(5).replace("-", "/")}</b>
-            <span>第 ${x.week} 週</span></div>
-          <div class="calbody">
-            <div class="caltext"><b>${esc(x.title)}</b>${x.speaker ? `　講師：${esc(x.speaker)}` : ""}</div>
-            <div class="hint">${esc(x.time)}　${esc(x.place)}</div>
-          </div>
-        </div>`;
-      }).join("")}
-    </article>
-    <article class="card pad" style="margin-top:12px">
-      <h4 style="font-size:.86rem;color:var(--muted);letter-spacing:.5px;margin-bottom:6px">怎麼算分</h4>
-      <div class="bodytext" style="margin-top:0">${esc(FORUM.grading_text)}</div>
-    </article>
 
     <div class="sec"><h2>本學期週曆</h2><span class="hint">碩一上</span></div>
     ${weekGrid(t.rows)}
