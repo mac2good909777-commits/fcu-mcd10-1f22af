@@ -39,7 +39,11 @@ insert into public.cohorts (id, name, year, is_current) values
 on conflict (id) do nothing;
 
 -- v_members 要吐出 kind，前端才分得出誰是誰
-create or replace view public.v_members as
+-- ⚠️ 必須先 drop 再建：create or replace view 不能在既有欄位【中間】插新欄位，
+--    會噴 42P16 cannot change name of view column。
+--    （只能沿用原順序或往最後面加。）
+drop view if exists public.v_members;
+create view public.v_members as
   select m.id, m.cohort, m.sort, m.name, m.grp, m.officer, m.status, m.kind,
          (m.claimed_at is not null) as claimed,
          (p.confirmed_at is not null) as confirmed
