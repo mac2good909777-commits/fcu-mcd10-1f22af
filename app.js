@@ -14,7 +14,7 @@
    解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
    換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
    ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
-const CSS_V = "74";
+const CSS_V = "76";
 (function fixStaleCss(){
   if(document.documentElement.dataset.cssv === CSS_V) return;
   // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
@@ -27,7 +27,7 @@ const CSS_V = "74";
   location.replace(location.pathname + "?r=" + CSS_V);
 })();
 
-const VERSION = "v7.4　2026-08-30";
+const VERSION = "v7.6　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -1472,6 +1472,16 @@ function render_courses(){
       <b>星期四沒有課</b>；<b>週一晚上兩門課同時開</b>，國土計畫專論與結構物安全鑑定實務只能二擇一。
       資料出自${esc(t.source)}，實際時間與教室仍以學校課表與授課老師公告為準。</div>
 
+    <details class="howto" open style="margin-top:10px">
+        <summary>碩二上課表（115-1，第九屆學長姊的課，供規劃參考）</summary>
+        <div class="howtobody" style="padding:0">
+          ${weekGrid(TERM_Y2.rows)}
+          <div class="hint" style="padding:10px 0 0">
+            ⚠️ 我們升碩二時是 116-1，開課內容會不一樣。</div>
+        </div>
+      </details>
+
+
     <div class="sec"><h2>課程地圖</h2></div>
     <article class="card pad">
       <div class="creditbar">
@@ -1484,8 +1494,8 @@ function render_courses(){
         畢業要 <b>${COURSE_MAP.credits.total}</b> 學分：共同必修 ${COURSE_MAP.credits.required} 學分，
         其餘全部靠選修湊，每門 ${COURSE_MAP.credits.per_elective} 學分 ——
         也就是還要修滿十門。${esc(COURSE_MAP.credits.outside)}</div>
-      <details class="howto" style="margin-top:12px">
-        <summary>展開四學期完整課程地圖</summary>
+      <details class="howto" open style="margin-top:12px">
+        <summary>四學期完整課程地圖</summary>
         <div class="howtobody">
           <div class="maptable">
             <table>
@@ -1501,7 +1511,7 @@ function render_courses(){
           <div class="hint" style="margin-top:8px">115 學年度入學新生適用。僅供參考，以當學期公告為主。</div>
         </div>
       </details>
-      <details class="howto" style="margin-top:10px">
+      <details class="howto" open style="margin-top:10px">
         <summary>課程配當表（依學期分必修選修）</summary>
         <div class="howtobody">
           <div class="allocwrap">
@@ -1518,14 +1528,6 @@ function render_courses(){
             資料出自${esc(COURSE_ALLOC.source)}。
             <br>⚠️ 這張表跟上面的選課地圖有三處課名不一致（手冊本身兩頁就不同），
             另有「都市及區域經濟」只出現在選課地圖 —— 以學程辦公室公告為準。</div>
-        </div>
-      </details>
-      <details class="howto" style="margin-top:10px">
-        <summary>碩二上課表（115-1，第九屆學長姊的課，供規劃參考）</summary>
-        <div class="howtobody" style="padding:0">
-          ${weekGrid(TERM_Y2.rows)}
-          <div class="hint" style="padding:10px 0 0">
-            ⚠️ 我們升碩二時是 116-1，開課內容會不一樣。</div>
         </div>
       </details>
     </article>
