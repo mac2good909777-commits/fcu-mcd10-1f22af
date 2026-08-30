@@ -14,7 +14,7 @@
    解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
    換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
    ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
-const CSS_V = "85";
+const CSS_V = "86";
 (function fixStaleCss(){
   if(document.documentElement.dataset.cssv === CSS_V) return;
   // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
@@ -27,7 +27,7 @@ const CSS_V = "85";
   location.replace(location.pathname + "?r=" + CSS_V);
 })();
 
-const VERSION = "v8.5　2026-08-30";
+const VERSION = "v8.6　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -365,6 +365,15 @@ const isOfficer  = () => !!(ME && ME.officer);
    ⛔ 也不要用 data.js 裡的靜態值 —— 名冊異動後就對不上了。
    ⚠️ 休學的不算在「人數」裡，但名冊上還是列出來（標休學中）——
       問「我們班幾個人」，答案是現在還在的那些。 */
+/* 休學中的同學不列在網頁上。
+   ⛔ 【不要】從 MEMBERS 裡刪掉 ——
+      資料庫保留、前端也要留著，不然資源交流、公告的作者
+      查名字會查不到，變成一堆「未知」。只在【列出來的地方】濾掉。
+   ⚠️ 只濾 leave（休學中）。leave_active 是「休學但仍參與」，
+      那位還在班上活動，濾掉他才是錯的。 */
+const onLeave = m => m.status === "leave";
+const rosterOf = arr => arr.filter(m => !onLeave(m));
+
 const activeCount = () =>
   MEMBERS.filter(m => (m.kind || "student") === "student" && m.status !== "leave").length;
 
@@ -437,7 +446,7 @@ function render_home(){
   /* 師長排在同學前面 —— 名冊那邊也是同一個原則，兩處要一致。
      學程主任與助教不在 OFFICER_ORDER 裡，officerRank 會給 99 而被排到最後，
      所以要先按身分分層，再在同一層裡照職務位階排。 */
-  const officers = MEMBERS.filter(m => m.officer)
+  const officers = rosterOf(MEMBERS).filter(m => m.officer)
     .sort((a,b) => (isStudent(a) - isStudent(b)) || (officerRank(a) - officerRank(b)));
 
   el("v-home").innerHTML = heroHTML() + `
@@ -648,8 +657,9 @@ function render_members(){
   /* ⛔ 名冊只列【同學】。老師與助教也在 members 裡（他們要能登入），
         但混進同學名冊會讓「50 位同學」這個數字失真，組別篩選也會出現
         不屬於任何一組的人。他們獨立一區放在最下面。 */
-  const staff = MEMBERS.filter(m => (m.kind || "student") !== "student");
-  const list = MEMBERS.filter(m => (m.kind || "student") === "student").filter(m => {
+  const roster = rosterOf(MEMBERS);
+  const staff = roster.filter(m => (m.kind || "student") !== "student");
+  const list = roster.filter(m => (m.kind || "student") === "student").filter(m => {
     if(M_FILTER.group !== "all" && m.group !== M_FILTER.group) return false;
     const p = profileOf(m.id);
     if(M_FILTER.ind !== "all" && (!p || p.industry !== M_FILTER.ind)) return false;
@@ -676,7 +686,7 @@ function render_members(){
 
   el("v-members").innerHTML = `
     <div class="sec"><h2>名冊</h2><span class="hint">${list.length} / ${
-      MEMBERS.filter(m => (m.kind || "student") === "student").length} 位</span></div>
+      roster.filter(m => (m.kind || "student") === "student").length} 位</span></div>
     ${!ME ? `<div class="notice-lock">
       名冊先開放<b>姓名</b>，方便同學進來對照認領自己。<br>
       公司與職稱<b>已由新生名冊預設帶入</b>，登入後才看得到，之後也可以自己修改。</div>` : ""}
@@ -687,10 +697,10 @@ function render_members(){
           oninput="M_FILTER.q=this.value;render_members();refocus('mq')">
       </div>
       <div class="chips">
-        <button class="chip${M_FILTER.group==="all"?" on":""}" onclick="M_FILTER.group='all';render_members()">全部 ${MEMBERS.filter(m => (m.kind||"student") === "student").length}</button>
+        <button class="chip${M_FILTER.group==="all"?" on":""}" onclick="M_FILTER.group='all';render_members()">全部 ${roster.filter(m => (m.kind||"student") === "student").length}</button>
         ${Object.entries(GROUPS).map(([k,g]) =>
           `<button class="chip${M_FILTER.group===k?" on":""}" onclick="M_FILTER.group='${k}';render_members()">
-            <span class="gdot" style="background:${g.color}"></span>${esc(g.short)} ${MEMBERS.filter(m => m.group === k && (m.kind||"student") === "student").length}</button>`).join("")}
+            <span class="gdot" style="background:${g.color}"></span>${esc(g.short)} ${roster.filter(m => m.group === k && (m.kind||"student") === "student").length}</button>`).join("")}
       </div>
       ${inds.length ? `<div class="chips" style="margin-top:6px">
         <button class="chip${M_FILTER.ind==="all"?" on":""}" onclick="M_FILTER.ind='all';render_members()">不分產業</button>
@@ -1272,7 +1282,7 @@ function render_admin(){
       <h4 style="font-size:.86rem;color:var(--muted);letter-spacing:.5px;margin-bottom:8px">班級概況</h4>
       <dl class="kv">
         <dt>同學人數</dt><dd>${activeCount()} 位在學</dd>
-        <dt>幹部</dt><dd>${MEMBERS.filter(m=>m.officer).sort((a,b)=>officerRank(a)-officerRank(b))
+        <dt>幹部</dt><dd>${rosterOf(MEMBERS).filter(m=>m.officer).sort((a,b)=>officerRank(a)-officerRank(b))
           .map(m=>`<span class="pill" style="margin:2px 3px 2px 0">${esc(m.officer)}：${esc(m.name)}</span>`).join("")}</dd>
         <dt>組別分布</dt><dd>${Object.entries(byGroup).map(([g,ms]) =>
           `<span class="pill" style="margin:2px 3px 2px 0"><span class="gdot" style="background:${groupColor(g)}"></span>${esc(groupName(g))} ${ms.length}</span>`).join("")}</dd>
