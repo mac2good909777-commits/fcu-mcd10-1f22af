@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v3.1　2026-08-30";
+const VERSION = "v3.3　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -272,30 +272,6 @@ const emptyBox = (title, desc) =>
 function safeUrl(u){
   const t = (u || "").trim();
   return /^https?:\/\//i.test(t) ? t : null;
-}
-/* 把網址畫成 QR（SVG）。
-   ⛔ 不要用 api.qrserver.com 那類第三方服務 —— 那等於把每位同學的
-      LINE 連結送到別人的伺服器上，而且對方掛掉整頁就破圖。
-      qrcode-generator 在瀏覽器本機算，離線也會動。
-   ⚠️ typeNumber 給 0 ＝ 讓它自己挑最小夠用的版本；
-      寫死版本的話，網址長一點就會直接丟例外。 */
-function qrSVG(text, px){
-  try{
-    const qr = qrcode(0, "M");          // M：容錯 15%，印出來被手指遮到一角還讀得到
-    qr.addData(text); qr.make();
-    const n = qr.getModuleCount(), b = 4, size = n + b * 2;
-    let d = "";
-    for(let r = 0; r < n; r++)
-      for(let c = 0; c < n; c++)
-        if(qr.isDark(r, c)) d += `M${c + b} ${r + b}h1v1h-1z`;
-    return `<svg class="qrimg" viewBox="0 0 ${size} ${size}" width="${px}" height="${px}"
-      shape-rendering="crispEdges" role="img" aria-label="QR code">
-      <rect width="${size}" height="${size}" fill="#fff"/>
-      <path d="${d}" fill="var(--p-700)"/></svg>`;
-  }catch(e){
-    console.error("QR 產生失敗", e);
-    return "";
-  }
 }
 // LINE 的連結長這兩種：個人 line.me/ti/p/xxx、官方帳號 lin.ee/xxx
 const isLineUrl = u => /^https:\/\/(line\.me\/ti\/p\/|lin\.ee\/)/i.test((u || "").trim());
@@ -754,17 +730,9 @@ function render_mdetail(){
 
       ${safeUrl(v("line_url")) ? `<div class="block">
         <h4>LINE${isMe ? visTag(m.id,"line_url") : ""}</h4>
-        <div class="qrbox">
-          <div class="qrcell" onclick="openQR(${m.id})" title="點一下放大">
-            ${qrSVG(safeUrl(v("line_url")), 132)}
-            <span>點一下放大</span>
-          </div>
-          <div class="qrside">
-            <a class="btn btn-line" href="${esc(safeUrl(v("line_url")))}" target="_blank" rel="noopener">
-              加 ${esc(m.name)} 為 LINE 好友</a>
-            <div class="hint">在手機上直接點按鈕；當面加好友就掃左邊的 QR。</div>
-          </div>
-        </div>
+        <a class="btn btn-line" href="${esc(safeUrl(v("line_url")))}" target="_blank" rel="noopener">
+          加 ${esc(m.name)} 為 LINE 好友</a>
+        <div class="hint" style="margin-top:6px">當面加好友的話，用 LINE 自己的行動條碼就好。</div>
         ${isMe && !isLineUrl(v("line_url")) ? `<div class="hint" style="margin-top:6px">
           ⚠️ 這看起來不像 LINE 的連結（正常是 line.me/ti/p/… 或 lin.ee/…），確認一下。</div>` : ""}
       </div>` : ""}
@@ -795,14 +763,19 @@ function render_mdetail(){
 
       ${isMe ? `<div class="actions" style="margin-top:16px">
         <button class="btn btn-primary" onclick="go('profile')">編輯我的資料</button></div>
-        <div class="hint" style="margin-top:8px">標籤上的
-          <span class="vistag">本屆同學</span> 是這一欄的公開範圍，只有你自己看得到這些標籤。</div>` : ""}
+        <div class="hint" style="margin-top:8px">欄位旁邊出現
+          <span class="vistag open">公開</span> 或 <span class="vistag shut">只有自己</span>
+          時，代表那一欄跟預設（本屆同學）不一樣。只有你自己看得到這些標籤。</div>` : ""}
     </article>`;
 }
 
-// 欄位旁邊的小標：這一欄現在給誰看。只有本人看得到。
+/* 欄位旁邊的小標：這一欄現在給誰看。只有本人看得到。
+   ⛔ 預設值（本屆同學）不顯示 —— 每一欄都掛同一個標籤等於沒有資訊，
+      只是把版面弄花。只有「跟預設不一樣」的才值得標出來，
+      那時候它才真的在提醒你：這一欄跟其他欄不同。 */
 function visTag(id, key){
   const k = fieldVis(id, key);
+  if(k === "class") return "";
   return ` <span class="vistag${k === "public" ? " open" : k === "private" ? " shut" : ""}">${VIS[k].label}</span>`;
 }
 
@@ -1377,16 +1350,6 @@ function paintDrawer(){
 function openDrawer(){ el("drawer").classList.add("on"); el("scrim").classList.add("on"); }
 function closeDrawer(){ el("drawer").classList.remove("on"); el("scrim").classList.remove("on"); }
 function openLightbox(url){ el("lightimg").src = url; el("lightbox").classList.add("on"); }
-/* QR 放大：當面加好友時要讓對方掃得到，小小一格掃不動 */
-function openQR(id){
-  const m = memberOf(id), u = safeUrl(fullProfile(id).line_url);
-  if(!u) return;
-  el("qrbig").innerHTML = `${qrSVG(u, 260)}
-    <div class="qrname">${esc(m.name)}</div>
-    <div class="qrhint">用 LINE 的「行動條碼」掃這張</div>`;
-  el("qrmodal").classList.add("on");
-}
-function closeQR(){ el("qrmodal").classList.remove("on"); }
 function closeLightbox(){ el("lightbox").classList.remove("on"); }
 
 /* ── 登入 ────────────────────────────────────────────────────────
