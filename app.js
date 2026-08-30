@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v3.3　2026-08-30";
+const VERSION = "v3.4　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -1012,7 +1012,9 @@ function render_me(){
 
     <div class="sec"><h2>看板的封面照</h2></div>
     <article class="card pad">
-      <div class="hint" style="margin-bottom:10px">選一張你喜歡的，只會改到你自己看到的畫面。</div>
+      <div class="hint" style="margin-bottom:10px">
+        選一張你喜歡的。<b>只會改到你自己這台裝置看到的畫面</b>，
+        其他同學看到的不會變（設定存在你的瀏覽器裡）。</div>
       <div class="chips" style="flex-wrap:wrap">
         ${Object.entries(HEROES).map(([k,h]) =>
           `<button class="chip${heroKey()===k?" on":""}" onclick="setHero('${k}')">${esc(h.label)}</button>`).join("")}
@@ -1023,11 +1025,12 @@ function render_me(){
         使用時必須標示作者與授權，出處寫在<b>使用說明</b>頁最下面。</div>
     </article>
 
-    ${LIVE && ME ? `
+    ${LIVE && ME && ME.officer === "班代" ? `
     <div class="sec"><h2>診斷</h2></div>
     <article class="card pad">
       <div class="hint" style="margin-bottom:10px">
-        排錯用的。按下去會問資料庫「你認為我是誰」，把結果整段截圖給我就能定位問題。</div>
+        ⛔ 只有班代看得到這一塊，同學不會看到。<br>
+        系統怪怪的時候按下去，把結果整段截圖傳出來就能定位問題。</div>
       <div class="actions"><button class="btn btn-ghost btn-sm" onclick="showDbWhoAmI(this)">問資料庫我是誰</button></div>
       <pre id="dbwho" style="display:none;white-space:pre-wrap;word-break:break-all;
         background:var(--line-soft);padding:10px;border-radius:8px;margin-top:10px;
