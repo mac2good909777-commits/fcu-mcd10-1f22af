@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v2.8　2026-08-30";
+const VERSION = "v2.9　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -653,23 +653,24 @@ function memberCard(m){
        最後    標籤靠底對齊
      ⛔ 頭像不要獨佔一整列 —— 那會讓上方空一大塊，
         資訊全擠在下面的窄柱裡，316px 的欄寬等於白給。 */
+  /* 版面：
+       第一行  頭像 ＋ 姓名（橫排，右上角留給職務標籤）
+       之後    單位／職稱、一句話自介、標籤，全部佔滿整個卡片寬度
+     ⛔ 不要把單位擠到右半邊 —— 316px 的卡再切一半，
+        「睦聚地產開發有限公司」會斷成三行，比沒有還難看。 */
   return `<div class="mcard${m.status === "leave" ? " dim" : ""}" onclick="openMember(${m.id})">
     ${m.officer ? `<div class="of">${esc(officerBadge(m))}</div>` : ""}
-    <div class="mrow1">
-      <div class="mwho">
-        <div class="ava" style="background:${groupColor(m.group)}">${esc(initials(m.name))}</div>
+    <div class="mtop">
+      <div class="ava" style="background:${groupColor(m.group)}">${esc(initials(m.name))}</div>
+      <div class="mname">
         <div class="n">${esc(m.name)}</div>
         ${nick ? `<div class="nick">${esc(nick)}</div>` : ""}
       </div>
-      <div class="c">
-        ${orgs.length ? orgs.map((o, i) =>
-          // 職稱接在單位後面同一段流動，不強制換行 ——
-          // 硬斷行會讓短公司名後面留一大塊空白，卡片也變高
-          `<div class="org${i ? " alt" : ""}">${esc(o.c || "")}${
-            o.c && o.t ? "　" : ""}<span>${esc(o.t || "")}</span></div>`).join("")
-          : `<span class="locked">${m.confirmed === false ? "尚未填寫" : LOCKED}</span>`}
-      </div>
     </div>
+    ${orgs.length ? `<div class="c">${orgs.map((o, i) =>
+      `<div class="org${i ? " alt" : ""}">${esc(o.c || "")}${
+        o.c && o.t ? "　" : ""}<span>${esc(o.t || "")}</span></div>`).join("")}</div>`
+      : `<div class="c blank">${m.confirmed === false ? "尚未填寫資料" : LOCKED}</div>`}
     ${head ? `<div class="head">「${esc(head)}」</div>` : ""}
     <div class="pills">
       ${tag ? `<span class="pill solid" style="background:${groupColor(m.group)}">${esc(tag)}</span>` : ""}
