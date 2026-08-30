@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v2.9　2026-08-30";
+const VERSION = "v3.0　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -140,19 +140,29 @@ const memberOf = id => MEMBERS.find(m => m.id === id) || null;
    每一個欄位由本人自己決定給誰看。四級，由寬到嚴：
 
      public   任何人（含未登入）
-     alumni   全學程校友（跨屆）← 校友會的預留，現在只有一屆＝等同 class
      class    本屆同學（登入後）← 預設
      private  只有自己
+     alumni   全學程校友（跨屆）← 資料庫認得，但介面先不提供，見 VIS 的說明
 
    ⛔ 預設一律 class，不是 public。
       同學是把資料交給「班上」，不是交給網際網路 ——
       要公開必須是他自己動手打開，不能是我們幫他決定的。          */
 const VIS = {
   public:  { label:"公開",     hint:"任何人都看得到，包含沒登入的訪客",  rank:0 },
-  alumni:  { label:"全學程校友", hint:"跨屆的學長姊學弟妹（校友會啟用後生效）", rank:1 },
+  /* ⚠️ alumni（跨屆校友）先【不放進選單】。
+        校友會會不會做還沒定案，現在讓它出現在每個欄位的下拉裡只是干擾 ——
+        四個選項要想，三個選項馬上就選得下去。
+        資料庫那邊的判斷邏輯照樣留著（mask_profile 認得這個值），
+        將來要開只要把 hidden 拿掉，不用動資料也不用改後端。 */
+  alumni:  { label:"全學程校友", hint:"跨屆的學長姊學弟妹（尚未啟用）", rank:1, hidden:true },
   class:   { label:"本屆同學",   hint:"登入的第十屆同學（預設）",          rank:2 },
   private: { label:"只有自己",   hint:"誰都看不到，只有你自己編輯時看得到", rank:3 }
 };
+/* 下拉要顯示哪些選項。
+   ⚠️ 已經存成隱藏值的欄位仍要列出那個選項，
+      否則使用者一存檔就會被無聲改成別的範圍。 */
+const visOptions = current =>
+  Object.entries(VIS).filter(([k, o]) => !o.hidden || k === current);
 // 我現在是什麼身分 → 我最多看得到 rank 幾的欄位
 function viewerRank(target){
   if(ME && target && ME.id === target.id) return 9;          // 自己看自己：全都看得到
@@ -848,7 +858,7 @@ function profileField(f, p){
     return `<div class="field">
       <label>${esc(f.label)}
         <select class="vissel" id="pv_${f.key}">
-          ${Object.entries(VIS).map(([k, o]) =>
+          ${visOptions(vis).map(([k, o]) =>
             `<option value="${k}"${k === vis ? " selected" : ""}>${esc(o.label)}</option>`).join("")}
         </select>
       </label>
@@ -868,7 +878,7 @@ function profileField(f, p){
   return `<div class="field${f.key_field ? " key" : ""}">
     <label>${esc(f.label)}${f.optional ? `<span class="opt">選填</span>` : ""}
       <select class="vissel" id="pv_${f.key}">
-        ${Object.entries(VIS).map(([k, o]) =>
+        ${visOptions(vis).map(([k, o]) =>
           `<option value="${k}"${k === vis ? " selected" : ""}>${esc(o.label)}</option>`).join("")}
       </select>
     </label>
