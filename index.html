@@ -345,6 +345,13 @@ img{max-width:100%}
 .cseg.ele{background:var(--p-300)}
 .numlist{padding-left:20px;font-size:.92rem;line-height:1.75}
 .numlist li{margin:5px 0}
+/* 課程地圖：欄多字長，用橫向捲動而不是硬擠 */
+.maptable{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.maptable table{border-collapse:collapse;font-size:.78rem;min-width:620px}
+.maptable th,.maptable td{border:1px solid var(--line);padding:7px 9px;vertical-align:top;text-align:left}
+.maptable th{background:var(--chip);font-weight:700;white-space:nowrap}
+.maptable .rowlab{background:var(--card);max-width:120px;white-space:normal}
+.maptable td div{margin:2px 0;line-height:1.5}
 .linkrow{display:flex;align-items:center;gap:10px;padding:13px 15px;font-size:.9rem;
   font-weight:600;border-bottom:1px solid var(--line-soft);cursor:pointer}
 .linkrow:last-child{border-bottom:none}
@@ -486,12 +493,12 @@ img{max-width:100%}
 <!-- ⚠️ 每支 js 後面的 ?v= 是快取破解用的。
      GitHub Pages 會讓瀏覽器把 js 快取住，不加這個的話我改了東西，
      同學那邊還是舊版，而且看不出來 —— 每次改版把 v 一起換掉。 -->
-<script src="config.js?v=35"></script>
-<script src="school.js?v=35"></script>
-<script src="data.js?v=35"></script>
+<script src="config.js?v=36"></script>
+<script src="school.js?v=36"></script>
+<script src="data.js?v=36"></script>
 <!-- private.js 已於 2026-08-29 刪除：公司職稱改由資料庫按可見範圍吐出。
      ⛔ 不要為了「本機測試方便」把它加回來 —— 那等於再開一個公開的個資副本。 -->
-<script src="backend.js?v=35"></script>
-<script src="app.js?v=35"></script>
+<script src="backend.js?v=36"></script>
+<script src="app.js?v=36"></script>
 </body>
 </html>

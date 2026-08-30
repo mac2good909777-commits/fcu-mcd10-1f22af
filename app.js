@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v3.5　2026-08-30";
+const VERSION = "v3.6　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -301,36 +301,19 @@ const groupColor = g => (GROUPS[g] || {}).color || "var(--p-500)";
 const groupName  = g => (GROUPS[g] || {}).name || "";
 const isOfficer  = () => !!(ME && ME.officer);
 
-/* ── 主視覺：四種風格，可即時切換 ────────────────────────────────
-   ?style=theater|skyline|facade|blueprint 或「我的」頁面切換。
-   決定後把 HERO_DEFAULT 改掉就好，其餘幾張圖可以刪。           */
-const HEROES = {
-  renyan:   { img:"assets/hero-renyan.jpg",   label:"人言大樓",
-              note:"逢甲最具代表性的建築，校內地標。" },
-  memorial: { img:"assets/hero-memorial.jpg", label:"丘逢甲紀念館",
-              note:"校名的由來，安靜、有份量。" },
-  aerial:   { img:"assets/hero-aerial.jpg",   label:"校園空拍",
-              note:"看得到整個校區的規模。" },
-  blueprint:{ img:"assets/hero-blueprint.jpg",label:"藍圖規劃",
-              note:"不用校景，走規劃專業的抽象路線。" }
-};
-const HERO_DEFAULT = "renyan";
-function heroKey(){
-  const q = new URLSearchParams(location.search).get("style");
-  if(q && HEROES[q]) return q;
-  try{ const s = localStorage.getItem("fcu10_hero"); if(s && HEROES[s]) return s; }catch(e){}
-  return HERO_DEFAULT;
-}
-function setHero(k){
-  try{ localStorage.setItem("fcu10_hero", k); }catch(e){}
-  render(VIEW);
-}
+/* ── 主視覺 ──────────────────────────────────────────────────────
+   固定人言大樓 —— 逢甲最具代表性的建築、校內地標。
+   ⛔ 原本做成可切換，但那是版型階段用來比較的工具；
+      上線之後每個人看到不一樣的封面沒有意義，還多一份要維護的狀態。
+   圖片授權 CC BY-SA 3.0（Wikimedia Commons，攝影者 SSR2000），
+   出處寫在「使用說明」頁，依授權條款不可刪除。               */
+const HERO = "assets/hero-renyan.jpg";
+
 function heroHTML(){
-  const h = HEROES[heroKey()];
   const blocks = ["--c-sky","--c-green","--c-yellow","--c-orange","--c-purple"]
     .map(c => `<i style="background:var(${c})"></i>`).join("");
   return `<div class="hero">
-    <img src="${h.img}" alt="">
+    <img src="${HERO}" alt="逢甲大學人言大樓">
     <div class="tint"></div>
     <div class="blocks">${blocks}</div>
     <div class="txt">
@@ -1010,21 +993,6 @@ function render_me(){
         <div class="actions" style="margin-top:14px"><button class="btn btn-primary" onclick="onMe()">登入</button></div>
       </article>`}
 
-    <div class="sec"><h2>看板的封面照</h2></div>
-    <article class="card pad">
-      <div class="hint" style="margin-bottom:10px">
-        選一張你喜歡的。<b>只會改到你自己這台裝置看到的畫面</b>，
-        其他同學看到的不會變（設定存在你的瀏覽器裡）。</div>
-      <div class="chips" style="flex-wrap:wrap">
-        ${Object.entries(HEROES).map(([k,h]) =>
-          `<button class="chip${heroKey()===k?" on":""}" onclick="setHero('${k}')">${esc(h.label)}</button>`).join("")}
-      </div>
-      <div class="hint" style="margin-top:8px">${esc(HEROES[heroKey()].note)}</div>
-      <div class="hint" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line-soft)">
-        校園照片來自 Wikimedia Commons，授權 CC BY-SA 3.0 ——
-        使用時必須標示作者與授權，出處寫在<b>使用說明</b>頁最下面。</div>
-    </article>
-
     ${LIVE && ME && ME.officer === "班代" ? `
     <div class="sec"><h2>診斷</h2></div>
     <article class="card pad">
@@ -1234,14 +1202,83 @@ function adminCalendarHTML(today, next){
       教育目標、核心能力都拿掉了 —— 同學考進來時就看過，
       在這裡重印只會把真正要看的東西往下推。要查的人給連結就夠。 */
 function render_courses(){
-  const c = COURSE_INFO, t = THIS_TERM_COURSES;
+  const c = COURSE_INFO, t = THIS_TERM, today = twDate(new Date());
+  const nextF = FORUM.sessions.find(x => x.date >= today);
+  const req = t.rows.filter(r => r.kind === "必修");
+  const ele = t.rows.filter(r => r.kind !== "必修");
+
   el("v-courses").innerHTML = `
     <div class="sec"><h2>本學期課程</h2><span class="hint">${esc(t.term)}</span></div>
-    ${t.rows.length ? `<article class="card">
-        ${t.rows.map(courseRow).join("")}
-      </article>`
-      : emptyBox("還沒有整理本學期的課",
-          "這一區放「我們這屆實際會去上的那幾門」：課名、老師、上課時間、教室。等選課結果出來由幹部整理進來，每學期換一次。學程的完整課程規劃在下面的連結，不重複放。")}
+
+    ${nextF ? `<article class="card bigcard">
+      <div class="band">
+        <div class="kicker">下一場　建設發展創新論壇（必修）</div>
+        <div class="t">${esc(nextF.title)}${nextF.speaker ? `　講師：${esc(nextF.speaker)}` : ""}</div>
+      </div>
+      <div class="body">
+        <div class="meta"><span>🗓 <b>${nextF.date.slice(5).replace("-", "/")}（${calWeekday(nextF.date)}）</b>
+          　${esc(nextF.time)}　第 ${nextF.week} 週</span></div>
+        <div class="meta" style="margin-top:5px"><span>📍 ${esc(nextF.place)}</span></div>
+        <div class="seatline">還有 <b>${Math.round((new Date(nextF.date) - new Date(today)) / 86400000)}</b> 天</div>
+      </div>
+    </article>` : ""}
+
+    <div class="sec"><h2>必修</h2></div>
+    <article class="card">${req.map(courseRow).join("")}</article>
+
+    <div class="sec"><h2>選修</h2><span class="hint">每門 3 學分</span></div>
+    <article class="card">${ele.map(courseRow).join("")}</article>
+    <div class="hint" style="margin-top:8px">${esc(t.note)}
+      標「<b>時間待確認</b>」的是我從課表照片判讀的，請以學校課表為準。</div>
+
+    <div class="sec"><h2>建設發展創新論壇　六場次</h2></div>
+    <div class="hint" style="margin-bottom:10px">${esc(FORUM.summary)}<br>地點：${esc(FORUM.place)}</div>
+    <article class="card">
+      ${FORUM.sessions.map(x => {
+        const past = x.date < today;
+        return `<div class="calrow${past ? " past" : ""}${x === nextF ? " next" : ""}">
+          <div class="caldate wide"><b>${x.date.slice(5).replace("-", "/")}</b>
+            <span>第 ${x.week} 週</span></div>
+          <div class="calbody">
+            <div class="caltext"><b>${esc(x.title)}</b>${x.speaker ? `　講師：${esc(x.speaker)}` : ""}</div>
+            <div class="hint">${esc(x.time)}　${esc(x.place)}</div>
+          </div>
+        </div>`;
+      }).join("")}
+    </article>
+    <article class="card pad" style="margin-top:12px">
+      <h4 style="font-size:.86rem;color:var(--muted);letter-spacing:.5px;margin-bottom:6px">評分方式</h4>
+      <ul class="offlist">${FORUM.grading.map(g => `<li>${esc(g)}</li>`).join("")}</ul>
+    </article>
+
+    <div class="sec"><h2>課程地圖</h2></div>
+    <article class="card pad">
+      <div class="creditbar">
+        <div class="cseg req" style="flex:${COURSE_MAP.credits.required}">
+          <b>${COURSE_MAP.credits.required}</b><span>必修</span></div>
+        <div class="cseg ele" style="flex:${COURSE_MAP.credits.total - COURSE_MAP.credits.required}">
+          <b>${COURSE_MAP.credits.total - COURSE_MAP.credits.required}</b><span>選修</span></div>
+      </div>
+      <div class="hint" style="margin-top:8px">畢業共 <b>${COURSE_MAP.credits.total}</b> 學分，
+        選修每門 ${COURSE_MAP.credits.per_elective} 學分。${esc(COURSE_MAP.credits.outside)}</div>
+      <details class="howto" style="margin-top:12px">
+        <summary>展開四學期完整課程地圖</summary>
+        <div class="howtobody">
+          <div class="maptable">
+            <table>
+              <tr><th></th>${COURSE_MAP.terms.map(x => `<th>${esc(x)}</th>`).join("")}</tr>
+              ${COURSE_MAP.rows.map(r => `<tr>
+                <th class="rowlab"${r.key !== "req" && r.key !== "common"
+                  ? ` style="border-left:3px solid ${groupColor(r.key)}"` : ""}>${esc(r.label)}</th>
+                ${r.cells.map(cell => `<td>${cell.length
+                  ? cell.map(x => `<div>${esc(x)}</div>`).join("") : "—"}</td>`).join("")}
+              </tr>`).join("")}
+            </table>
+          </div>
+          <div class="hint" style="margin-top:8px">115 學年度入學新生適用。僅供參考，以當學期公告為主。</div>
+        </div>
+      </details>
+    </article>
 
     <div class="sec"><h2>自己查課</h2></div>
     <article class="card">
@@ -1254,23 +1291,23 @@ function render_courses(){
       進去之後分頁選「<b>${esc(c.search.tab)}</b>」，依序選：
       ${c.search.fields.map(f => `${esc(f.label)} <b>${esc(f.value)}</b>`).join("、")}。<br>
       這個系統沒辦法做成直達連結 —— 網址帶一個會過期的憑證，選完條件網址也不會變。
-    </div>
-
-    <div class="hint" style="margin-top:12px">
-      資料整理自學程官網「碩士專業」頁（2026-08-29）。
-      實際修業規定以學程辦公室與課程查詢系統公告為準。</div>`;
+    </div>`;
 }
+
 function courseRow(r){
   return `<div class="calrow">
+    <div class="caldate wide">
+      <b>${r.day ? "週" + r.day : "—"}</b>
+      <span>${r.credits} 學分</span>
+    </div>
     <div class="calbody">
       <div class="caltext"><b>${esc(r.name)}</b></div>
-      <div class="hint">${[r.teacher, r.when, r.room].filter(Boolean).map(esc).join("　")}</div>
+      <div class="hint">${[r.time + (r.unsure ? "（時間待確認）" : ""), r.teacher, r.note]
+        .filter(Boolean).map(esc).join("　")}</div>
     </div>
-    <div class="pills" style="align-self:flex-start;flex-direction:column;align-items:flex-end">
-      ${r.kind ? `<span class="pill${r.kind === "必修" ? " warn" : ""}">${esc(r.kind)}</span>` : ""}
-      ${r.credits ? `<span class="pill">${r.credits} 學分</span>` : ""}
-      ${r.group ? `<span class="pill solid" style="background:${groupColor(r.group)}">${esc((GROUPS[r.group]||{}).short||"")}</span>` : ""}
-    </div>
+    ${r.group ? `<span class="pill solid" style="align-self:flex-start;background:${groupColor(r.group)}">${
+      esc((GROUPS[r.group]||{}).short||"")}</span>`
+      : `<span class="pill warn" style="align-self:flex-start">必修</span>`}
   </div>`;
 }
 
