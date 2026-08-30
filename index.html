@@ -240,11 +240,17 @@ img{max-width:100%}
 /* 分頁列：合併後的群組用這排切換子頁 */
 .subtabs{display:flex;gap:4px;margin:0 0 14px;border-bottom:1px solid var(--line);
   overflow-x:auto;-webkit-overflow-scrolling:touch}
-.subtabs button{border:0;background:none;padding:9px 14px 10px;font:inherit;font-size:.92rem;
+.subtabs{align-items:center}
+.subtabs .tb{border:0;background:none;padding:9px 14px 10px;font:inherit;font-size:.92rem;
   font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap;
   border-bottom:2.5px solid transparent;margin-bottom:-1px}
-.subtabs button.on{color:var(--p-700);border-bottom-color:var(--p-500)}
-.subtabs button:hover{color:var(--ink)}
+.subtabs .tb.on{color:var(--p-700);border-bottom-color:var(--p-500)}
+.subtabs .tb:hover{color:var(--ink)}
+/* 被吸收進來的說明字與動作鈕靠右站 */
+.subtabs .tabhint{margin-left:auto;padding-left:10px;white-space:nowrap}
+.subtabs .more{margin-left:auto;padding:0 2px 0 10px;white-space:nowrap}
+.subtabs .tabhint + .more{margin-left:0}
+@media(max-width:600px){.subtabs .tabhint{display:none}}
 
 /* ── 表單 ───────────────────────────── */
 .field{margin-bottom:12px}
@@ -620,14 +626,14 @@ img{max-width:100%}
 <!-- ⚠️ 每支 js 後面的 ?v= 是快取破解用的。
      GitHub Pages 會讓瀏覽器把 js 快取住，不加這個的話我改了東西，
      同學那邊還是舊版，而且看不出來 —— 每次改版把 v 一起換掉。 -->
-<script src="config.js?v=53"></script>
-<script src="school.js?v=53"></script>
-<script src="faculty.js?v=53"></script>
-<script src="data.js?v=53"></script>
+<script src="config.js?v=54"></script>
+<script src="school.js?v=54"></script>
+<script src="faculty.js?v=54"></script>
+<script src="data.js?v=54"></script>
 <!-- private.js 已於 2026-08-29 刪除：公司職稱改由資料庫按可見範圍吐出。
      ⛔ 不要為了「本機測試方便」把它加回來 —— 那等於再開一個公開的個資副本。 -->
-<script src="backend.js?v=53"></script>
-<script src="app.js?v=53"></script>
-<script src="forms.js?v=53"></script>
+<script src="backend.js?v=54"></script>
+<script src="app.js?v=54"></script>
+<script src="forms.js?v=54"></script>
 </body>
 </html>

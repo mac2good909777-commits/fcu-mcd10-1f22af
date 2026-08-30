@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v5.3　2026-08-30";
+const VERSION = "v5.4　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -1573,14 +1573,17 @@ const VIEWS = ["home","notices","acts","calendar","courses","members","mdetail",
    ⛔ home／members／needs 不進分頁：最常點的三個藏起來等於廢掉。 */
 const NAV_GROUPS = [
   { v:"home",    label:"首頁" },
+  /* 第三格＝這一頁自己的大標題文字。分頁列已經寫了頁名，
+     底下再一個一模一樣的大標題是廢話 —— 把它吸收進分頁列，
+     它右邊的說明字與動作鈕（＋發布）一起搬過來，不會弄丟。 */
   { v:"notices", label:"公告活動",
-    tabs:[["notices","公告與問卷"], ["acts","活動"], ["album","相簿"]] },
+    tabs:[["notices","公告與問卷","公告與問卷"], ["acts","活動","活動"], ["album","相簿","班級相簿"]] },
   { v:"courses", label:"課程",
-    tabs:[["courses","本學期"], ["calendar","行事曆"], ["faculty","師資"]] },
+    tabs:[["courses","本學期","本學期課程"], ["calendar","行事曆","行事曆"], ["faculty","師資","師資"]] },
   { v:"members", label:"同學" },
   { v:"needs",   label:"資源交流" },
   { v:"me",      label:"我的",
-    tabs:[["me","我的"], ["help","使用說明"]] },
+    tabs:[["me","我的","我的"], ["help","使用說明","使用說明"]] },
   { v:"admin",   label:"班級管理", officerOnly:true },
 ];
 /* 子頁 → 它屬於哪個導覽項（決定哪個按鈕亮著）。
@@ -1606,7 +1609,20 @@ function paintTabs(v){
   const bar = document.createElement("div");
   bar.className = "subtabs";
   bar.innerHTML = g.tabs.map(([tv, tl]) =>
-    `<button class="${tv === v ? "on" : ""}" onclick="go('${tv}')">${tl}</button>`).join("");
+    `<button class="tb${tv === v ? " on" : ""}" onclick="go('${tv}')">${tl}</button>`).join("");
+
+  // 把重複的頁面標題吸收掉，它的說明字與動作鈕搬進分頁列
+  const own = g.tabs.find(t => t[0] === v)?.[2];
+  if(own){
+    const sec = [...host.querySelectorAll(".sec")]
+      .find(x => x.querySelector("h2")?.textContent.trim() === own);
+    if(sec){
+      const hint = sec.querySelector(".hint"), act = sec.querySelector(".more");
+      if(hint){ hint.classList.add("tabhint"); bar.appendChild(hint); }
+      if(act) bar.appendChild(act);
+      sec.remove();
+    }
+  }
   host.insertBefore(bar, host.firstChild);
 }
 function go(v){
