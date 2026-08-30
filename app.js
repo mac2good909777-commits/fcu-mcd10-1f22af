@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v5.2　2026-08-30";
+const VERSION = "v5.3　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -1568,6 +1568,28 @@ function render_help(){
 
 /* ── 導覽 ──────────────────────────────────────────────────────── */
 const VIEWS = ["home","notices","acts","calendar","courses","members","mdetail","profile","claim","faculty","needs","ndetail","album","pdetail","me","admin","help"];
+/* 導覽只有六項。同一件事的頁面收成【分頁】，不要各占一列 ——
+   十一項的側欄沒人掃得完，每次都要從頭找一遍。
+   ⛔ home／members／needs 不進分頁：最常點的三個藏起來等於廢掉。 */
+const NAV_GROUPS = [
+  { v:"home",    label:"首頁" },
+  { v:"notices", label:"公告活動",
+    tabs:[["notices","公告與問卷"], ["acts","活動"], ["album","相簿"]] },
+  { v:"courses", label:"課程",
+    tabs:[["courses","本學期"], ["calendar","行事曆"], ["faculty","師資"]] },
+  { v:"members", label:"同學" },
+  { v:"needs",   label:"資源交流" },
+  { v:"me",      label:"我的",
+    tabs:[["me","我的"], ["help","使用說明"]] },
+  { v:"admin",   label:"班級管理", officerOnly:true },
+];
+/* 子頁 → 它屬於哪個導覽項（決定哪個按鈕亮著）。
+   詳細頁沒有自己的按鈕，也靠這張表回到來源。 */
+const NAV_ROOT = (() => {
+  const m = {};
+  NAV_GROUPS.forEach(g => (g.tabs || [[g.v]]).forEach(([v]) => m[v] = g.v));
+  return Object.assign(m, { mdetail:"members", ndetail:"needs", pdetail:"notices", profile:"me", claim:"me" });
+})();
 const NAV_TITLES = { home:"首頁", notices:"公告", acts:"活動",
   calendar:"行事曆", courses:"課程資訊", faculty:"師資", members:"同學名冊",
   needs:"資源交流", album:"相簿", me:"我的", admin:"班級管理", help:"使用說明" };
@@ -1575,13 +1597,23 @@ const NAV_TITLES = { home:"首頁", notices:"公告", acts:"活動",
 function render(v){
   const fn = window["render_" + v];
   if(fn) fn();
+  paintTabs(v);   // ⚠️ 放在 render 裡而不是 go 裡：頁內的篩選鈕也會直接呼叫 render()，
+}                 //    只在 go() 插分頁列的話，一按篩選分頁列就不見了。
+function paintTabs(v){
+  const g = NAV_GROUPS.find(x => x.tabs && x.tabs.some(t => t[0] === v));
+  if(!g) return;
+  const host = el("v-" + v); if(!host) return;
+  const bar = document.createElement("div");
+  bar.className = "subtabs";
+  bar.innerHTML = g.tabs.map(([tv, tl]) =>
+    `<button class="${tv === v ? "on" : ""}" onclick="go('${tv}')">${tl}</button>`).join("");
+  host.insertBefore(bar, host.firstChild);
 }
 function go(v){
   if(!VIEWS.includes(v)) v = "home";
   VIEW = v;
   VIEWS.forEach(x => el("v-" + x).classList.toggle("on", x === v));
-  // 詳細頁沒有自己的 nav 按鈕，就讓它的來源頁保持亮著
-  const navFor = { mdetail:"members", ndetail:"needs", pdetail:"acts", profile:"me" }[v] || v;
+  const navFor = NAV_ROOT[v] || v;
   document.querySelectorAll(".nav button").forEach(b => b.classList.toggle("on", b.dataset.v === navFor));
   render(v);
   paintDrawer();
@@ -1591,9 +1623,12 @@ function go(v){
 document.querySelectorAll(".nav button").forEach(b => b.onclick = () => go(b.dataset.v));
 
 function paintDrawer(){
-  el("drawerlist").innerHTML = Object.entries(NAV_TITLES).map(([v, t]) => {
-    if(v === "admin" && !isOfficer()) return "";
-    return `<a class="di${VIEW===v?" on":""}" onclick="go('${v}')">${t}</a>`;
+  el("drawerlist").innerHTML = NAV_GROUPS.map(g => {
+    if(g.officerOnly && !isOfficer()) return "";
+    const rows = (g.tabs || [[g.v, g.label]]).map(([v, t]) =>
+      `<a class="di${VIEW === v ? " on" : ""}" onclick="go('${v}')">${t}</a>`).join("");
+    // 只有一頁的群組不用再加一層標題，那只是多一行字
+    return g.tabs ? `<div class="dgroup">${g.label}</div>${rows}` : rows;
   }).join("") + `<div class="dgroup">學程</div>
     <a class="di" href="${CLASS_INFO.site}" target="_blank" rel="noopener">學程官網 ↗</a>`;
 }

@@ -228,7 +228,8 @@ img{max-width:100%}
   padding-bottom:env(safe-area-inset-bottom)}
 .nav .brand{display:none}
 .nav button{flex:1;border:none;background:none;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:2px;font-size:.68rem;font-weight:700;
+  align-items:center;justify-content:center;gap:2px;font-size:.63rem;font-weight:700;
+  letter-spacing:-.3px;padding:0 2px;text-align:center;line-height:1.15;
   color:var(--muted);cursor:pointer;position:relative}
 .nav button.on{color:var(--p-700)}
 .nav button .ic{stroke:currentColor;fill:none}
@@ -236,6 +237,14 @@ img{max-width:100%}
   border-radius:50%;background:var(--c-red);display:none}
 .nav button.hasnew .dot{display:block}
 .deskonly{display:none}
+/* 分頁列：合併後的群組用這排切換子頁 */
+.subtabs{display:flex;gap:4px;margin:0 0 14px;border-bottom:1px solid var(--line);
+  overflow-x:auto;-webkit-overflow-scrolling:touch}
+.subtabs button{border:0;background:none;padding:9px 14px 10px;font:inherit;font-size:.92rem;
+  font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap;
+  border-bottom:2.5px solid transparent;margin-bottom:-1px}
+.subtabs button.on{color:var(--p-700);border-bottom-color:var(--p-500)}
+.subtabs button:hover{color:var(--ink)}
 
 /* ── 表單 ───────────────────────────── */
 .field{margin-bottom:12px}
@@ -348,6 +357,7 @@ img{max-width:100%}
   .nav .brandname{font-size:.8rem;font-weight:800;color:var(--p-700);margin-top:6px;line-height:1.4}
   .nav .brandname span{display:block;font-size:.68rem;font-weight:500;color:var(--muted)}
   .nav button{flex:none;flex-direction:row;justify-content:flex-start;gap:11px;
+    letter-spacing:0;text-align:left;
     padding:13px 20px;font-size:.9rem;height:auto}
   .nav button.on{background:var(--chip)}
   .nav button .dot{top:14px;right:auto;left:12px}
@@ -592,31 +602,32 @@ img{max-width:100%}
     <img src="assets/mcd-logo.png" alt="">
     <div class="brandname">逢甲大學<br>建設碩士在職學位學程<span>第十屆同學看板</span></div>
   </div>
+  <!-- ⚠️ 只有六個。項目一多就沒人掃得完，反而每次都要找。
+       同一件事的頁面收進【分頁】（見 app.js 的 NAV_GROUPS），不要各占一列：
+         公告活動 → 公告與問卷／活動／相簿（公告和活動本來就同一張資料表，相簿拍的就是活動）
+         課程     → 本學期／行事曆／師資（都是學校端的事）
+         我的     → 我的／使用說明
+       ⛔ 首頁、同學、資源交流【不要】收進分頁 —— 這三個最常點，藏起來等於廢掉。 -->
   <button class="on" data-v="home"><svg class="ic" width="21" height="21"><use href="#i-home"/></svg>首頁<i class="dot"></i></button>
-  <button data-v="notices"><svg class="ic" width="21" height="21"><use href="#i-bell"/></svg>公告<i class="dot"></i></button>
-  <button data-v="acts"><svg class="ic" width="21" height="21"><use href="#i-spark"/></svg>活動<i class="dot"></i></button>
-  <button data-v="calendar" class="deskonly"><svg class="ic" width="21" height="21"><use href="#i-cal"/></svg>行事曆<i class="dot"></i></button>
-  <button data-v="courses" class="deskonly"><svg class="ic" width="21" height="21"><use href="#i-book"/></svg>課程資訊<i class="dot"></i></button>
-  <button data-v="faculty" class="deskonly"><svg class="ic" width="21" height="21"><use href="#i-book"/></svg>師資<i class="dot"></i></button>
+  <button data-v="notices"><svg class="ic" width="21" height="21"><use href="#i-bell"/></svg>公告活動<i class="dot"></i></button>
+  <button data-v="courses"><svg class="ic" width="21" height="21"><use href="#i-book"/></svg>課程<i class="dot"></i></button>
   <button data-v="members"><svg class="ic" width="21" height="21"><use href="#i-people"/></svg>同學<i class="dot"></i></button>
-  <button data-v="needs" class="deskonly"><svg class="ic" width="21" height="21"><use href="#i-swap"/></svg>資源交流<i class="dot"></i></button>
-  <button data-v="album" class="deskonly"><svg class="ic" width="21" height="21"><use href="#i-photo"/></svg>相簿<i class="dot"></i></button>
+  <button data-v="needs"><svg class="ic" width="21" height="21"><use href="#i-swap"/></svg>資源交流<i class="dot"></i></button>
   <button data-v="me"><svg class="ic" width="21" height="21"><use href="#i-me"/></svg>我的<i class="dot"></i></button>
-  <button data-v="help" class="deskonly"><svg class="ic" width="21" height="21"><use href="#i-form"/></svg>使用說明<i class="dot"></i></button>
   <button data-v="admin" id="nav-admin" class="deskonly" style="display:none"><svg class="ic" width="21" height="21"><use href="#i-shield"/></svg>班級管理<i class="dot"></i></button>
 </nav>
 
 <!-- ⚠️ 每支 js 後面的 ?v= 是快取破解用的。
      GitHub Pages 會讓瀏覽器把 js 快取住，不加這個的話我改了東西，
      同學那邊還是舊版，而且看不出來 —— 每次改版把 v 一起換掉。 -->
-<script src="config.js?v=52"></script>
-<script src="school.js?v=52"></script>
-<script src="faculty.js?v=52"></script>
-<script src="data.js?v=52"></script>
+<script src="config.js?v=53"></script>
+<script src="school.js?v=53"></script>
+<script src="faculty.js?v=53"></script>
+<script src="data.js?v=53"></script>
 <!-- private.js 已於 2026-08-29 刪除：公司職稱改由資料庫按可見範圍吐出。
      ⛔ 不要為了「本機測試方便」把它加回來 —— 那等於再開一個公開的個資副本。 -->
-<script src="backend.js?v=52"></script>
-<script src="app.js?v=52"></script>
-<script src="forms.js?v=52"></script>
+<script src="backend.js?v=53"></script>
+<script src="app.js?v=53"></script>
+<script src="forms.js?v=53"></script>
 </body>
 </html>
