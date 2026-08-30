@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v2.7　2026-08-30";
+const VERSION = "v2.8　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -663,8 +663,10 @@ function memberCard(m){
       </div>
       <div class="c">
         ${orgs.length ? orgs.map((o, i) =>
+          // 職稱接在單位後面同一段流動，不強制換行 ——
+          // 硬斷行會讓短公司名後面留一大塊空白，卡片也變高
           `<div class="org${i ? " alt" : ""}">${esc(o.c || "")}${
-            o.c && o.t ? "<br>" : ""}<span>${esc(o.t || "")}</span></div>`).join("")
+            o.c && o.t ? "　" : ""}<span>${esc(o.t || "")}</span></div>`).join("")
           : `<span class="locked">${m.confirmed === false ? "尚未填寫" : LOCKED}</span>`}
       </div>
     </div>

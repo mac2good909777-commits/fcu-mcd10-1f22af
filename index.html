@@ -170,7 +170,8 @@ img{max-width:100%}
 /* 第二、三個身分：淡一階，一眼看得出主次，但不會小到看不清楚 */
 .mcard .org + .org{margin-top:5px;padding-top:5px;border-top:1px dashed var(--line)}
 .mcard .org.alt{opacity:.78}
-.mcard .org span{color:var(--text);font-weight:600}
+/* 職稱：跟在單位後面同一段流動，用字重與顏色區分，不靠換行 */
+.mcard .org span{color:var(--text);font-weight:700;white-space:nowrap}
 /* 標籤永遠貼在卡片底部，卡片高度不一也對得齊 */
 .mcard .pills{margin-top:auto;padding-top:10px;justify-content:flex-start}
 .mcard .of{position:absolute;top:8px;right:8px;font-size:.66rem;font-weight:800;
@@ -507,13 +508,13 @@ img{max-width:100%}
 <!-- ⚠️ 每支 js 後面的 ?v= 是快取破解用的。
      GitHub Pages 會讓瀏覽器把 js 快取住，不加這個的話我改了東西，
      同學那邊還是舊版，而且看不出來 —— 每次改版把 v 一起換掉。 -->
-<script src="assets/qrcode.js?v=27"></script>
-<script src="config.js?v=27"></script>
-<script src="school.js?v=27"></script>
-<script src="data.js?v=27"></script>
+<script src="assets/qrcode.js?v=28"></script>
+<script src="config.js?v=28"></script>
+<script src="school.js?v=28"></script>
+<script src="data.js?v=28"></script>
 <!-- private.js 已於 2026-08-29 刪除：公司職稱改由資料庫按可見範圍吐出。
      ⛔ 不要為了「本機測試方便」把它加回來 —— 那等於再開一個公開的個資副本。 -->
-<script src="backend.js?v=27"></script>
-<script src="app.js?v=27"></script>
+<script src="backend.js?v=28"></script>
+<script src="app.js?v=28"></script>
 </body>
 </html>
