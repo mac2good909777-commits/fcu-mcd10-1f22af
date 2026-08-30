@@ -348,6 +348,13 @@ const SB = {
     const r = await authApi("save_profile",
       { fields: Object.assign({}, fields, { vis }) });
     if(r.error) throw new Error(r.error);
+    /* ⛔ 後端把某些欄位丟掉的話要當成錯誤丟出來。
+       多半是後端還沒重新部署、白名單比前端舊 ——
+       這時候「儲存成功」是騙人的，那些欄位根本沒進資料庫。 */
+    if(r.ignored && r.ignored.length){
+      throw new Error("這些欄位後端沒有收：" + r.ignored.join("、") +
+        "（通常是 Edge Function 還沒重新部署）");
+    }
     return r;
   }
 };

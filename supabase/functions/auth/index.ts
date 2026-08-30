@@ -346,6 +346,11 @@ Deno.serve(async (req) => {
       const now = new Date().toISOString();
       const patch: Record<string, unknown> = { updated_at: now, confirmed_at: now };
       for (const k of ALLOW) if (k in fields) patch[k] = fields[k];
+      /* ⛔ 白名單擋掉的欄位要【講出來】，不要默默吞掉。
+         2026-08-30：前端加了 phone/email/line_id，但這支函式沒重新部署，
+         結果使用者填了、畫面顯示已儲存、資料其實從來沒進資料庫 ——
+         查了很久才發現。沉默的失敗比報錯難查十倍。 */
+      const ignored = Object.keys(fields).filter((k) => !ALLOW.includes(k));
 
       const rows = await db(`profiles?member_id=eq.${meId}`, {
         method: "PATCH",
@@ -360,7 +365,7 @@ Deno.serve(async (req) => {
           headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
         });
       }
-      return json({ ok: true });
+      return json({ ok: true, ignored });
     }
 
     // 我報名了哪幾場
