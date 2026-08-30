@@ -14,7 +14,7 @@
    解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
    換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
    ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
-const CSS_V = "65";
+const CSS_V = "66";
 (function fixStaleCss(){
   if(document.documentElement.dataset.cssv === CSS_V) return;
   // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
@@ -27,7 +27,7 @@ const CSS_V = "65";
   location.replace(location.pathname + "?r=" + CSS_V);
 })();
 
-const VERSION = "v6.5　2026-08-30";
+const VERSION = "v6.6　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -1258,7 +1258,9 @@ let CAL_TAB = "class";     // class 停課日 / admin 行政日程
 function render_calendar(){
   const today = twDate(new Date());
   const sched = CLASS_SCHEDULE;
-  // 下一個「不上課」的日子 —— 在職專班最常被問的就是這個
+  /* 下次沒課是什麼時候 —— 在職專班最常被問的就是這個。
+     ⛔ 不要寫成「下一個不上課的日子」：那是把欄位名直接搬到畫面上，
+        讀起來像系統訊息。同學實際會問的是「下次沒課是哪天」。 */
   const nextOff = sched.rows.filter(r => !r.teach)
     .map(r => ({ ...r, d: r.dates.find(d => d >= today) || r.dates[r.dates.length - 1] }))
     .filter(r => r.d >= today)[0];
@@ -1270,7 +1272,7 @@ function render_calendar(){
 
     ${nextOff ? `<article class="card bigcard">
       <div class="band">
-        <div class="kicker">下一個不上課的日子</div>
+        <div class="kicker">下次沒課</div>
         <div class="t">${esc(nextOff.week)}　${nextOff.dates.map(d => d.slice(5).replace("-", "/")).join("、")}</div>
       </div>
       <div class="body">
@@ -1287,7 +1289,7 @@ function render_calendar(){
     ${CAL_TAB === "class" ? classScheduleHTML(today) : adminCalendarHTML(today, nextAdmin)}`;
 }
 
-/* 學程公告的休假表：一列一個日期區間，右邊直接標「上課／不上課」 */
+/* 學程公告的休假表：一列一個日期區間，右邊直接標「上課／沒課」 */
 function classScheduleHTML(today){
   const s = CLASS_SCHEDULE;
   return `
@@ -1305,7 +1307,7 @@ function classScheduleHTML(today){
             <ul class="offlist">${r.items.map(t => `<li>${esc(t)}</li>`).join("")}</ul>
           </div>
           <span class="pill solid" style="align-self:flex-start;background:${
-            r.teach ? "var(--ok)" : "var(--c-red)"}">${r.teach ? "上課" : "不上課"}</span>
+            r.teach ? "var(--ok)" : "var(--c-red)"}">${r.teach ? "上課" : "沒課"}</span>
         </div>`;
       }).join("")}
     </article>
