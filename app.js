@@ -14,7 +14,7 @@
    解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
    換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
    ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
-const CSS_V = "70";
+const CSS_V = "71";
 (function fixStaleCss(){
   if(document.documentElement.dataset.cssv === CSS_V) return;
   // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
@@ -27,7 +27,7 @@ const CSS_V = "70";
   location.replace(location.pathname + "?r=" + CSS_V);
 })();
 
-const VERSION = "v7.0　2026-08-30";
+const VERSION = "v7.1　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -1325,8 +1325,7 @@ function render_calendar(){
         <div class="t">${esc(nextOff.week)}　${nextOff.dates.map(d => d.slice(5).replace("-", "/")).join("、")}</div>
       </div>
       <div class="body">
-        <ul class="offlist">${nextOff.items.map(t => `<li>${esc(t)}</li>`).join("")}</ul>
-        ${affectedHTML(nextOff.dates)}
+        ${offItemsHTML(nextOff)}
         <div class="seatline">還有 <b>${days(nextOff.d)}</b> 天</div>
       </div>
     </article>` : ""}
@@ -1355,19 +1354,24 @@ function coursesOn(date){
     .filter(r => r.name !== "建設發展創新論壇"
               || FORUM.sessions.some(f => f.date === date));
 }
-function affectedHTML(dates){
-  const rows = [];
-  (dates || []).forEach(dt => coursesOn(dt).forEach(r => rows.push({ dt, r })));
-  if(!rows.length) return `<div class="hint" style="margin-top:8px">這幾天本來就沒有排課。</div>`;
-  return `<div class="offcls">
-    <div class="ochead">這幾天原本的課</div>
-    ${rows.map(({ dt, r }) => `<div class="ocrow">
-      <span class="ocdate">${dt.slice(5).replace("-", "/")}（${wdOf(dt)}）</span>
-      <span class="ocname">${esc(r.name)}${
-        r.kind === "必修" ? `<span class="wtag">必修</span>` : ""}</span>
-      <span class="octeacher">${esc(r.teacher || "")}</span>
-    </div>`).join("")}
-  </div>`;
+/* 直接接在那一條休假資訊後面，不另外開一區 ——
+   「9/25 中秋節」跟「所以那天的土地使用計畫沒了」是同一件事，
+   拆成兩塊要讀的人自己用日期去對，那本來就該由畫面對好。
+   ⚠️ items 是一行一句的原文，日期只能從字串開頭的「9/25」剖出來，
+      再回頭去 dates 找同月同日的那一天（年份只有 dates 有）。
+      像「9/17 加退選截止日」不在 dates 裡 —— 那天要上課，本來就不該列課。 */
+function offItemsHTML(r){
+  return `<ul class="offlist">${r.items.map(t => {
+    const m = t.match(/^(\d{1,2})\/(\d{1,2})/);
+    const date = m && (r.dates || []).find(d => {
+      const p = d.split("-");
+      return +p[1] === +m[1] && +p[2] === +m[2];
+    });
+    const cs = date ? coursesOn(date) : [];
+    return `<li>${esc(t)}${cs.length ? `<span class="oncls">當日課程　${
+      cs.map(c => `<b>${esc(c.name)}</b>${c.teacher ? `　${esc(c.teacher)}` : ""}`).join("；")
+    }</span>` : ""}</li>`;
+  }).join("")}</ul>`;
 }
 
 /* 學程公告的休假表：一列一個日期區間，右邊直接標「上課／沒課」 */
@@ -1385,8 +1389,7 @@ function classScheduleHTML(today){
             <span>${esc(r.week)}</span>
           </div>
           <div class="calbody">
-            <ul class="offlist">${r.items.map(t => `<li>${esc(t)}</li>`).join("")}</ul>
-            ${r.teach ? "" : affectedHTML(r.dates)}
+            ${offItemsHTML(r)}
           </div>
           <span class="pill solid" style="align-self:flex-start;background:${
             r.teach ? "var(--ok)" : "var(--c-red)"}">${r.teach ? "上課" : "沒課"}</span>
