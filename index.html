@@ -306,7 +306,6 @@ img{max-width:100%}
   .field label{flex-wrap:wrap}
   .vissel{margin-left:0;margin-top:2px}
 
-  .qfields{grid-template-columns:1fr 1fr}
   .creditbar{height:52px}
   .agrid{grid-template-columns:1fr 1fr;gap:8px}
   .actions{flex-wrap:wrap}
@@ -361,13 +360,6 @@ img{max-width:100%}
 .linkrow:last-child{border-bottom:none}
 .linkrow:hover{background:var(--chip)}
 .linkrow .go{margin-left:auto;color:var(--p-500);font-weight:800}
-/* 課程查詢的條件：長得像系統上那排下拉，照著對就好 */
-.qfields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
-.qf{border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 11px;background:var(--card)}
-.qf .l{display:block;font-size:.68rem;color:var(--muted);font-weight:600}
-.qf b{font-size:.9rem;font-weight:700}
-.qf.key{border-color:var(--p-500);background:var(--chip)}
-.qf.key b{color:var(--p-700)}
 /* 操作步驟收在 details 裡，不然表單會被一大段說明撐開 */
 .howto{margin-top:8px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--card)}
 .howto summary{cursor:pointer;padding:9px 12px;font-size:.82rem;font-weight:700;color:var(--p-500);
@@ -509,13 +501,13 @@ img{max-width:100%}
 <!-- ⚠️ 每支 js 後面的 ?v= 是快取破解用的。
      GitHub Pages 會讓瀏覽器把 js 快取住，不加這個的話我改了東西，
      同學那邊還是舊版，而且看不出來 —— 每次改版把 v 一起換掉。 -->
-<script src="assets/qrcode.js?v=30"></script>
-<script src="config.js?v=30"></script>
-<script src="school.js?v=30"></script>
-<script src="data.js?v=30"></script>
+<script src="assets/qrcode.js?v=31"></script>
+<script src="config.js?v=31"></script>
+<script src="school.js?v=31"></script>
+<script src="data.js?v=31"></script>
 <!-- private.js 已於 2026-08-29 刪除：公司職稱改由資料庫按可見範圍吐出。
      ⛔ 不要為了「本機測試方便」把它加回來 —— 那等於再開一個公開的個資副本。 -->
-<script src="backend.js?v=30"></script>
-<script src="app.js?v=30"></script>
+<script src="backend.js?v=31"></script>
+<script src="app.js?v=31"></script>
 </body>
 </html>

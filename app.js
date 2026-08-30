@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v3.0　2026-08-30";
+const VERSION = "v3.1　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -1268,24 +1268,21 @@ function render_courses(){
           "這一區放「我們這屆實際會去上的那幾門」：課名、老師、上課時間、教室。等選課結果出來由幹部整理進來，每學期換一次。學程的完整課程規劃在下面的連結，不重複放。")}
 
     <div class="sec"><h2>自己查課</h2></div>
-    <article class="card pad">
-      <div class="hint" style="margin-bottom:10px">
-        課程查詢系統沒辦法做成直達連結（網址帶一個會過期的憑證，
-        選完條件網址也不會變）。<b>照下面這樣選</b>：</div>
-      <div class="hint" style="margin-bottom:8px">分頁選「${esc(c.search.tab)}」</div>
-      <div class="qfields">
-        ${c.search.fields.map(f => `<div class="qf${f.key ? " key" : ""}">
-          <span class="l">${esc(f.label)}</span><b>${esc(f.value)}</b></div>`).join("")}
-      </div>
-      <div class="actions" style="margin-top:14px">
-        <a class="btn btn-primary" href="${esc(c.search.url)}" target="_blank" rel="noopener">開啟課程查詢系統 ↗</a>
-      </div>
-    </article>
-
-    <article class="card" style="margin-top:12px">
+    <article class="card">
+      <a class="linkrow" href="${esc(c.search.url)}" target="_blank" rel="noopener">
+        <span>課程查詢系統（開課狀況、教學大綱、進度、評量）</span><span class="go">↗</span></a>
       ${c.links.map(l => `<a class="linkrow" href="${esc(l.url)}" target="_blank" rel="noopener">
         <span>${esc(l.label)}</span><span class="go">↗</span></a>`).join("")}
-    </article>`;
+    </article>
+    <div class="hint" style="margin-top:10px">
+      進去之後分頁選「<b>${esc(c.search.tab)}</b>」，依序選：
+      ${c.search.fields.map(f => `${esc(f.label)} <b>${esc(f.value)}</b>`).join("、")}。<br>
+      這個系統沒辦法做成直達連結 —— 網址帶一個會過期的憑證，選完條件網址也不會變。
+    </div>
+
+    <div class="hint" style="margin-top:12px">
+      資料整理自學程官網「碩士專業」頁（2026-08-29）。
+      實際修業規定以學程辦公室與課程查詢系統公告為準。</div>`;
 }
 function courseRow(r){
   return `<div class="calrow">
