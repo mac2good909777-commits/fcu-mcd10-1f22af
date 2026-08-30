@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-TW" data-cssv="72">
+<html lang="zh-TW" data-cssv="73">
 <head>
 <meta charset="UTF-8">
 <meta name="robots" content="noindex, nofollow">
@@ -298,6 +298,16 @@ img{max-width:100%}
 @media(min-width:640px){.formwrap{align-items:center}.formbox{border-radius:16px}}
 /* 相簿沒有封面時的色塊 */
 /* 停課那一天原本的課，直接接在該條休假資訊底下 */
+/* 課程配當表：一學期一塊，必修選修各一列 */
+.alloc{padding:9px 0;border-bottom:1px solid var(--line-soft)}
+.alloc:last-of-type{border-bottom:none}
+.allocterm{font-weight:800;font-size:.88rem;color:var(--p-700);margin-bottom:5px}
+.allocrow{display:flex;gap:9px;align-items:baseline;margin-top:4px}
+.alloclab{flex:none;font-size:.7rem;font-weight:800;color:var(--muted);
+  border:1px solid var(--line);border-radius:5px;padding:1px 7px}
+.alloclab.req{background:var(--c-orange);color:#fff;border-color:transparent}
+.alloclist{font-size:.85rem;line-height:1.85}
+.alloclist i{font-style:normal;color:var(--muted);font-size:.76rem;margin-left:2px}
 .oncls{display:block;margin-top:3px;font-size:.8rem;color:var(--muted);line-height:1.6}
 .oncls b{color:var(--ink);font-weight:700}
 .pill.role{background:var(--c-orange);color:#fff;border-color:transparent;font-weight:800}
@@ -661,14 +671,14 @@ img{max-width:100%}
 <!-- ⚠️ 每支 js 後面的 ?v= 是快取破解用的。
      GitHub Pages 會讓瀏覽器把 js 快取住，不加這個的話我改了東西，
      同學那邊還是舊版，而且看不出來 —— 每次改版把 v 一起換掉。 -->
-<script src="config.js?v=72"></script>
-<script src="school.js?v=72"></script>
-<script src="faculty.js?v=72"></script>
-<script src="data.js?v=72"></script>
+<script src="config.js?v=73"></script>
+<script src="school.js?v=73"></script>
+<script src="faculty.js?v=73"></script>
+<script src="data.js?v=73"></script>
 <!-- private.js 已於 2026-08-29 刪除：公司職稱改由資料庫按可見範圍吐出。
      ⛔ 不要為了「本機測試方便」把它加回來 —— 那等於再開一個公開的個資副本。 -->
-<script src="backend.js?v=72"></script>
-<script src="app.js?v=72"></script>
-<script src="forms.js?v=72"></script>
+<script src="backend.js?v=73"></script>
+<script src="app.js?v=73"></script>
+<script src="forms.js?v=73"></script>
 </body>
 </html>
