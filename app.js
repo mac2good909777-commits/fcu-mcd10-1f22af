@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v4.5　2026-08-30";
+const VERSION = "v4.6　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -185,8 +185,13 @@ const PROFILE_FIELDS = [
   { key:"company2", pair:"title2", label:"單位／職稱（二）", type:"pair", vis:"class",
     hint:"身兼多家的話填這裡，沒有就留空" },
   { key:"company3", pair:"title3", label:"單位／職稱（三）", type:"pair", vis:"class" },
-  { key:"industry", label:"產業分類",   type:"select", vis:"class", seed:true,
-    hint:"名冊上的服務單位幫你分好了，不對就改。這欄是名冊的篩選依據" },
+  /* ⚠️ 不是下拉，是「可以自己打」的欄位。
+        原本 13 選 1，但這班橫跨的行業比我們列得出來的多
+        （能源、離岸風電、無人機、窗簾、磁磚建材…），
+        選不到自己那一行的人只能勉強挑一個最接近的，篩選反而失真。
+        分類是為了找人，不是為了整齊。 */
+  { key:"industry", label:"產業分類",   type:"combo", vis:"class", seed:true,
+    hint:"點一下會出現建議清單，也可以直接打自己的行業。這欄是名冊的篩選依據" },
   { key:"tag",      label:"產業標籤",   type:"text",   vis:"class",
     hint:"比分類更精確的一句。例：工業地產、危老重建、TOD" },
   { key:"headline", label:"一句話自介", type:"text",   vis:"class",
@@ -556,7 +561,7 @@ function render_members(){
     if(!q) return true;
     // 未登入時只能搜姓名 —— 搜得到公司就等於公司是公開的，那遮蔽就白做了
     const hay = p ? [m.name, m.officer, p.company, p.title, p.edu_bg,
-                     INDUSTRIES[p.industry], groupName(m.group)]
+                     p.industry, groupName(m.group)]
                   : [m.name, m.officer, groupName(m.group)];
     return hay.join(" ").toLowerCase().includes(q);
   }).sort((a,b) =>
@@ -569,8 +574,10 @@ function render_members(){
     || (a.sort - b.sort));
 
   // 產業別篩選只在登入後出現（未登入根本看不到產業別）
+  /* ⚠️ 產業篩選用【實際出現過的值】動態產生，不是固定清單 ——
+        同學自己打的行業也要能被篩到，否則「可以自己填」等於白填。 */
   const inds = ME ? [...new Set(MEMBERS.map(m => (profileOf(m.id)||{}).industry).filter(Boolean))]
-                    .sort((a,b) => Object.keys(INDUSTRIES).indexOf(a) - Object.keys(INDUSTRIES).indexOf(b)) : [];
+                    .sort((a, b) => a.localeCompare(b, "zh-Hant")) : [];
 
   el("v-members").innerHTML = `
     <div class="sec"><h2>同學名冊</h2><span class="hint">${list.length} / ${MEMBERS.length} 位</span></div>
@@ -591,7 +598,7 @@ function render_members(){
       </div>
       ${inds.length ? `<div class="chips" style="margin-top:6px">
         <button class="chip${M_FILTER.ind==="all"?" on":""}" onclick="M_FILTER.ind='all';render_members()">不分產業</button>
-        ${inds.map(k => `<button class="chip${M_FILTER.ind===k?" on":""}" onclick="M_FILTER.ind='${k}';render_members()">${esc(INDUSTRIES[k])}</button>`).join("")}
+        ${inds.map(k => `<button class="chip${M_FILTER.ind===k?" on":""}" onclick="M_FILTER.ind='${escAttr(k)}';render_members()">${esc(k)}</button>`).join("")}
       </div>` : ""}
     </div>
     ${!list.length ? `<div class="empty">沒有符合的同學</div>`
@@ -643,7 +650,7 @@ function memberCard(m){
     ${head ? `<div class="head">「${esc(head)}」</div>` : ""}
     <div class="pills">
       ${tag ? `<span class="pill solid" style="background:${groupColor(m.group)}">${esc(tag)}</span>` : ""}
-      ${ind ? `<span class="pill">${esc(INDUSTRIES[ind] || "")}</span>` : ""}
+      ${ind ? `<span class="pill">${esc(ind)}</span>` : ""}
       ${!tag && !ind ? `<span class="pill"><span class="gdot" style="background:${groupColor(m.group)}"></span>${esc((GROUPS[m.group]||{}).short||"")}</span>` : ""}
       ${statusPill(m)}
     </div>
@@ -685,7 +692,7 @@ function render_mdetail(){
           <div class="pills" style="margin-top:7px">
             ${m.officer ? `<span class="pill solid" style="background:var(--c-orange)">${esc(m.officer)}</span>` : ""}
             <span class="pill"><span class="gdot" style="background:${groupColor(m.group)}"></span>${esc(groupName(m.group))}</span>
-            ${v("industry") ? `<span class="pill">${esc(INDUSTRIES[v("industry")] || "")}</span>` : ""}
+            ${v("industry") ? `<span class="pill">${esc(v("industry"))}</span>` : ""}
             ${statusPill(m)}
           </div>
         </div>
@@ -839,11 +846,26 @@ function profileField(f, p){
       ${f.hint ? `<div class="hint">${esc(f.hint)}</div>` : ""}
     </div>`;
   }
+  if(f.type === "combo"){
+    return `<div class="field">
+      <label>${esc(f.label)}
+        <span class="vislabel">給誰看</span>
+        <select class="vissel" id="pv_${f.key}">
+          ${visOptions(vis).map(([k, o]) =>
+            `<option value="${k}"${k === vis ? " selected" : ""}>${esc(o.label)}</option>`).join("")}
+        </select>
+      </label>
+      <input id="pf_${f.key}" value="${esc(val)}" list="dl_${f.key}" placeholder="選一個，或直接打你的行業">
+      <datalist id="dl_${f.key}">
+        ${INDUSTRY_SUGGEST.map(x => `<option value="${esc(x)}"></option>`).join("")}
+      </datalist>
+      ${f.hint ? `<div class="hint">${esc(f.hint)}</div>` : ""}
+    </div>`;
+  }
   const input = f.type === "area"
     ? `<textarea id="pf_${f.key}" rows="4">${esc(val)}</textarea>`
     : f.type === "select"
-      ? `<select id="pf_${f.key}">${Object.entries(INDUSTRIES).map(([k,label]) =>
-          `<option value="${k}"${k === val ? " selected" : ""}>${esc(label)}</option>`).join("")}</select>`
+      ? `<select id="pf_${f.key}"></select>`   /* 目前沒有純下拉的欄位，保留分支備用 */
       : `<input id="pf_${f.key}" value="${esc(val)}">`;
   return `<div class="field${f.key_field ? " key" : ""}">
     <label>${esc(f.label)}${f.optional ? `<span class="opt">選填</span>` : ""}
