@@ -14,7 +14,7 @@
    解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
    換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
    ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
-const CSS_V = "81";
+const CSS_V = "82";
 (function fixStaleCss(){
   if(document.documentElement.dataset.cssv === CSS_V) return;
   // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
@@ -27,7 +27,7 @@ const CSS_V = "81";
   location.replace(location.pathname + "?r=" + CSS_V);
 })();
 
-const VERSION = "v8.1　2026-08-30";
+const VERSION = "v8.2　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -306,7 +306,13 @@ function profileOf(id){
   PROFILE_FIELDS.forEach(f => { const v = seeVal(m, f.key); if(v) out[f.key] = v; });
   return Object.keys(out).length ? out : null;
 }
-const LOCKED = "🔒 登入後可見";
+/* ⛔ 【不要】寫死成「登入後可見」——
+   已經登入的人也會看到這句，畫面就變成「我明明登入了，它卻叫我登入」，
+   看起來像登入壞掉。（2026-08-30 就是這樣被誤判成登入錯亂。）
+   看不到的原因有兩種，要分開講：
+     沒登入 → 登入後可見
+     登入了 → 那是對方自己設定不給看的 */
+const lockedText = () => ME ? "🔒 對方設定不公開" : "🔒 登入後可見";
 // 空狀態要說明「這一區是幹嘛的」。
 // 只寫「還沒有公告」，看的人會以為系統壞了或資料沒載進來。
 const emptyBox = (title, desc) =>
@@ -740,7 +746,7 @@ function memberCard(m){
     ${orgs.length ? `<div class="c">${orgs.map((o, i) =>
       `<div class="org${i ? " alt" : ""}">${esc(o.c || "")}${
         o.c && o.t ? "　" : ""}<span>${esc(o.t || "")}</span></div>`).join("")}</div>`
-      : `<div class="c blank">${m.confirmed === false ? "尚未填寫資料" : LOCKED}</div>`}
+      : `<div class="c blank">${m.confirmed === false ? "尚未填寫資料" : lockedText()}</div>`}
     ${head ? `<div class="head">「${esc(head)}」</div>` : ""}
     <div class="pills">
       ${tag ? `<span class="pill solid" style="background:${isStudent(m) ? groupColor(m.group) : "var(--p-700)"}">${esc(tag)}</span>` : ""}
@@ -782,7 +788,7 @@ function render_mdetail(){
           <div class="hint" style="margin-top:2px">${co || ti
             ? `${esc(co || "")}　${esc(ti || "")}`
             : isMe ? `<span class="locked">還沒填公司職稱</span>`
-                   : `<span class="locked">${LOCKED}</span>`}</div>
+                   : `<span class="locked">${m.confirmed === false ? "尚未填寫資料" : lockedText()}</span>`}</div>
           <div class="pills" style="margin-top:7px">
             ${m.officer ? `<span class="pill solid" style="background:var(--c-orange)">${esc(m.officer)}</span>` : ""}
             ${isStudent(m) ? `<span class="pill"><span class="gdot" style="background:${groupColor(m.group)}"></span>${esc(groupName(m.group))}</span>` : ""}
@@ -849,8 +855,11 @@ function render_mdetail(){
               <button class="btn btn-primary" onclick="go('profile')">去填我的資料</button></div></div>`
         : `<div class="block"><h4>更多資料</h4>
             <div class="notice-lock" style="margin:0">
-              這位同學的資料<b>設定成登入後才看得到</b>，或是他還沒填。<br>
-              名冊先讓大家對照認領自己，其餘由每個人自己決定給誰看。
+              ${ME
+                ? `<b>${esc(m.name)}</b> 還沒填自己的資料，或是設定成不給看。<br>
+                   （你已經登入了 —— 看不到跟你的登入狀態無關。）`
+                : `這位同學的資料<b>登入後才看得到</b>，或是他還沒填。<br>
+                   名冊先讓大家對照認領自己，其餘由每個人自己決定給誰看。`}
             </div>
             ${ME ? "" : `<div class="actions" style="margin-top:12px">
               <button class="btn btn-primary" onclick="onMe()">登入查看</button></div>`}</div>`)
