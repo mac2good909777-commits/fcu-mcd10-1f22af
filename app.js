@@ -14,7 +14,7 @@
    解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
    換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
    ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
-const CSS_V = "66";
+const CSS_V = "67";
 (function fixStaleCss(){
   if(document.documentElement.dataset.cssv === CSS_V) return;
   // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
@@ -27,7 +27,7 @@ const CSS_V = "66";
   location.replace(location.pathname + "?r=" + CSS_V);
 })();
 
-const VERSION = "v6.6　2026-08-30";
+const VERSION = "v6.7　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -1277,6 +1277,7 @@ function render_calendar(){
       </div>
       <div class="body">
         <ul class="offlist">${nextOff.items.map(t => `<li>${esc(t)}</li>`).join("")}</ul>
+        ${affectedHTML(nextOff.dates)}
         <div class="seatline">還有 <b>${days(nextOff.d)}</b> 天</div>
       </div>
     </article>` : ""}
@@ -1287,6 +1288,33 @@ function render_calendar(){
     </div></div>
 
     ${CAL_TAB === "class" ? classScheduleHTML(today) : adminCalendarHTML(today, nextAdmin)}`;
+}
+
+/* 那天原本有哪幾門課 —— 只講「11/28 沒課」沒有用，
+   同學要知道的是「所以我那門不動產稅制少上一次」。
+   ⚠️ 建設發展創新論壇不是每個週六都有，只有 FORUM 排定的六場；
+      不特別擋掉的話，每一個停課的週六都會誤報一場論壇。 */
+const WEEKDAY_CH = ["日","一","二","三","四","五","六"];
+const wdOf = d => WEEKDAY_CH[new Date(d + "T00:00:00").getDay()];
+function coursesOn(date){
+  const d = wdOf(date);
+  return THIS_TERM.rows.filter(r => r.day === d)
+    .filter(r => r.name !== "建設發展創新論壇"
+              || FORUM.sessions.some(f => f.date === date));
+}
+function affectedHTML(dates){
+  const rows = [];
+  (dates || []).forEach(dt => coursesOn(dt).forEach(r => rows.push({ dt, r })));
+  if(!rows.length) return `<div class="hint" style="margin-top:8px">這幾天本來就沒有排課。</div>`;
+  return `<div class="offcls">
+    <div class="ochead">這幾天原本的課</div>
+    ${rows.map(({ dt, r }) => `<div class="ocrow">
+      <span class="ocdate">${dt.slice(5).replace("-", "/")}（${wdOf(dt)}）</span>
+      <span class="ocname">${esc(r.name)}${
+        r.kind === "必修" ? `<span class="wtag">必修</span>` : ""}</span>
+      <span class="octeacher">${esc(r.teacher || "")}</span>
+    </div>`).join("")}
+  </div>`;
 }
 
 /* 學程公告的休假表：一列一個日期區間，右邊直接標「上課／沒課」 */
@@ -1305,6 +1333,7 @@ function classScheduleHTML(today){
           </div>
           <div class="calbody">
             <ul class="offlist">${r.items.map(t => `<li>${esc(t)}</li>`).join("")}</ul>
+            ${r.teach ? "" : affectedHTML(r.dates)}
           </div>
           <span class="pill solid" style="align-self:flex-start;background:${
             r.teach ? "var(--ok)" : "var(--c-red)"}">${r.teach ? "上課" : "沒課"}</span>

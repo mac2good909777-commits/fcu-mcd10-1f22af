@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-TW" data-cssv="66">
+<html lang="zh-TW" data-cssv="67">
 <head>
 <meta charset="UTF-8">
 <meta name="robots" content="noindex, nofollow">
@@ -296,6 +296,14 @@ img{max-width:100%}
   background:#fdeaec;color:var(--c-red);border:1px solid #f5c6cb}
 @media(min-width:640px){.formwrap{align-items:center}.formbox{border-radius:16px}}
 /* 相簿沒有封面時的色塊 */
+/* 停課那幾天原本有哪幾門課 */
+.offcls{margin-top:9px;border-top:1px dashed var(--line);padding-top:8px}
+.ochead{font-size:.72rem;font-weight:800;color:var(--muted);letter-spacing:.5px;margin-bottom:5px}
+.ocrow{display:flex;gap:9px;align-items:baseline;font-size:.82rem;padding:2px 0;flex-wrap:wrap}
+.ocdate{flex:none;font-weight:800;color:var(--p-500);font-variant-numeric:tabular-nums}
+.ocname{font-weight:700;color:var(--ink)}
+.ocname .wtag{margin-left:5px}
+.octeacher{color:var(--muted);font-size:.78rem}
 .pill.role{background:var(--c-orange);color:#fff;border-color:transparent;font-weight:800}
 .pill.open{background:#e7f5ec;color:#1c7a45;border-color:#bde2ca}
 .acorner{position:absolute;top:6px;left:6px;z-index:2}
@@ -654,14 +662,14 @@ img{max-width:100%}
 <!-- ⚠️ 每支 js 後面的 ?v= 是快取破解用的。
      GitHub Pages 會讓瀏覽器把 js 快取住，不加這個的話我改了東西，
      同學那邊還是舊版，而且看不出來 —— 每次改版把 v 一起換掉。 -->
-<script src="config.js?v=66"></script>
-<script src="school.js?v=66"></script>
-<script src="faculty.js?v=66"></script>
-<script src="data.js?v=66"></script>
+<script src="config.js?v=67"></script>
+<script src="school.js?v=67"></script>
+<script src="faculty.js?v=67"></script>
+<script src="data.js?v=67"></script>
 <!-- private.js 已於 2026-08-29 刪除：公司職稱改由資料庫按可見範圍吐出。
      ⛔ 不要為了「本機測試方便」把它加回來 —— 那等於再開一個公開的個資副本。 -->
-<script src="backend.js?v=66"></script>
-<script src="app.js?v=66"></script>
-<script src="forms.js?v=66"></script>
+<script src="backend.js?v=67"></script>
+<script src="app.js?v=67"></script>
+<script src="forms.js?v=67"></script>
 </body>
 </html>
