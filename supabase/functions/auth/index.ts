@@ -314,7 +314,14 @@ Deno.serve(async (req) => {
           body: JSON.stringify({ p_viewer: meId, p_cohort: meCohort }),
         },
       );
-      return json({ ok: true, profiles: rows ?? [] });
+      // ⚠️ mask_profile 不吐 vis（那是設定，不是內容），
+      //    但本人要看得到自己每一欄設定給誰看 —— 單獨補上自己的那一份。
+      let myVis: unknown = {};
+      if (meId) {
+        const mine = await db(`profiles?member_id=eq.${meId}&select=vis`);
+        myVis = (Array.isArray(mine) && mine[0]?.vis) || {};
+      }
+      return json({ ok: true, profiles: rows ?? [], my_vis: myVis, me_id: meId });
     }
 
     // 存自己的資料。⛔ 只認 token 裡的身分，不接受前端指定 member_id。

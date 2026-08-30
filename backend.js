@@ -335,7 +335,10 @@ const SB = {
   async profiles(){
     const r = await authApi("profiles");
     if(r.error) throw new Error(r.error);
-    return Object.fromEntries((r.profiles || []).map(x => [x.member_id, x.data || {}]));
+    const out = Object.fromEntries((r.profiles || []).map(x => [x.member_id, x.data || {}]));
+    // 自己的可見度設定 —— 資料庫遮罩後的內容不含 vis，要另外接回來
+    if(r.me_id && out[r.me_id]) out[r.me_id].vis = r.my_vis || {};
+    return out;
   },
   /* 存自己的資料。
      ⛔ 只送欄位內容，【不送 member_id】—— 身分由 Edge Function

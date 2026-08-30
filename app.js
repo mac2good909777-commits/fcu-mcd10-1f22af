@@ -14,7 +14,7 @@
    解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
    換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
    ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
-const CSS_V = "82";
+const CSS_V = "83";
 (function fixStaleCss(){
   if(document.documentElement.dataset.cssv === CSS_V) return;
   // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
@@ -27,7 +27,7 @@ const CSS_V = "82";
   location.replace(location.pathname + "?r=" + CSS_V);
 })();
 
-const VERSION = "v8.2　2026-08-30";
+const VERSION = "v8.3　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -269,14 +269,21 @@ function saveEdits(o){
 }
 // 完整的個人資料＝名冊帶進來的 ＋ 本人改過的
 function fullProfile(id){
-  if(LIVE) return PROFILES[id] || { vis:{} };
+  /* ⛔ 一定要保證 vis 是個物件。
+     正式模式下 PROFILES[id] 是資料庫遮罩後的結果，裡面【沒有 vis】——
+     直接讀 .vis[key] 會丟 TypeError，而這行跑在 render_mdetail 的
+     樣板字串中間，一炸整個 innerHTML 就不會被指派，
+     畫面會停在上一個人身上，看起來像「點 A 出現 B」。
+     （2026-08-30 就是這樣，查了半天才發現不是資料錯而是渲染中斷。） */
+  if(LIVE) return Object.assign({ vis:{} }, PROFILES[id] || {}, {
+    vis: (PROFILES[id] && PROFILES[id].vis) || {} });
   const seed = (typeof PRIVATE_PROFILE !== "undefined" && PRIVATE_PROFILE[id]) || {};
   const mine = loadEdits()[id] || {};
   return { ...seed, ...mine, vis:{ ...(seed.vis || {}), ...(mine.vis || {}) } };
 }
 // 這個欄位設定給誰看
 function fieldVis(id, key){
-  return fullProfile(id).vis[key] || FIELD[key]?.vis || "class";
+  return (fullProfile(id).vis || {})[key] || FIELD[key]?.vis || "class";
 }
 // 我看不看得到某人的某一欄
 function canSee(member, key){
