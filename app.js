@@ -8,7 +8,7 @@
       不要為了方便在 render 裡直接打 fetch。
    ════════════════════════════════════════════════════════════════ */
 
-const VERSION = "v3.9　2026-08-30";
+const VERSION = "v4.0　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -1319,8 +1319,7 @@ function weekGrid(rows){
   return `<div class="weekwrap"><table class="week">
     <tr><th class="tcorner"></th>${days.map(d => `<th>週${d}</th>`).join("")}</tr>
     ${slots.map(slot => `<tr>
-      <th class="tslot">${esc(slot.replace("–", "
-–"))}</th>
+      <th class="tslot">${esc(slot.replace("–", "\n–"))}</th>
       ${days.map(d => {
         const cs = rows.filter(r => r.day === d && r.time === slot);
         if(!cs.length) return `<td></td>`;
