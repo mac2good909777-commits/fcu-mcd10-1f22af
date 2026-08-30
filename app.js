@@ -14,7 +14,7 @@
    解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
    換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
    ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
-const CSS_V = "67";
+const CSS_V = "68";
 (function fixStaleCss(){
   if(document.documentElement.dataset.cssv === CSS_V) return;
   // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
@@ -27,7 +27,7 @@ const CSS_V = "67";
   location.replace(location.pathname + "?r=" + CSS_V);
 })();
 
-const VERSION = "v6.7　2026-08-30";
+const VERSION = "v6.8　2026-08-30";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -1677,11 +1677,12 @@ const NAV_GROUPS = [
      它右邊的說明字與動作鈕（＋發布）一起搬過來，不會弄丟。 */
   { v:"notices", label:"公告活動",
     tabs:[["notices","公告與問卷","公告與問卷"], ["acts","活動","活動"], ["album","相簿","班級相簿"]] },
-  /* 行事曆單獨一項：它是「今天要看的東西」，
-     跟課表師資的查閱性質不同，收進分頁會被忘記。 */
-  { v:"calendar", label:"行事曆" },
-  { v:"courses", label:"課程師資",
-    tabs:[["courses","本學期","本學期課程"], ["faculty","師資","師資"]] },
+  /* 課表與行事曆合在一起：兩個回答的是同一個問題 ——
+     「我這週哪天要來、來上什麼」。
+     師資拉出來單獨一項：那是查資料用的，跟每週要看的東西性質不同。 */
+  { v:"courses", label:"課程",
+    tabs:[["courses","本學期","本學期課程"], ["calendar","行事曆","行事曆"]] },
+  { v:"faculty", label:"師資" },
   { v:"members", label:"同學" },
   { v:"needs",   label:"資源交流" },
   { v:"me",      label:"我的",
