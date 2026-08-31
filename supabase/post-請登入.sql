@@ -1,23 +1,23 @@
 -- ═══════════════════════════════════════════════════════════════════
--- 一次性資料：發一則公告「請登入看板，並花三分鐘填自己的資料」
+-- 公告：「請登入看板，並花三分鐘填自己的資料」
 --
 -- 發布人＝張現傑（member id 23，班代）。
 --
 -- ⚠️ visibility 一定要 'public' —— 這則的收件人正是【還沒登入的人】。
 --    設成 class 的話，最需要看到它的人剛好看不到。
 --
--- ⚠️ important = true：置頂在首頁。這是新同學進站的第一則指引，
---    等大家都登入完可以改回 false（登入後按「編輯這則」就能改）。
+-- ⚠️ important = true：置頂在首頁。等大家都登入完可以改回 false
+--    （登入後在畫面上按「編輯這則」就能改，不用回來改 SQL）。
 --
--- ⚠️ 這是【資料】不是【結構】，重跑會多一則重複公告，
---    所以用 where not exists 擋住。
+-- ⚠️ 這支寫成「有就更新、沒有才新增」，可以重複執行。
+--    ⛔ 不要寫成單純的 insert + where not exists ——
+--       第一次跑完之後再改文字就永遠更新不到，
+--       檔案跟線上內容會不知不覺地分岔。（2026-09-01 就發生過。）
 --
 -- 在 Supabase → SQL Editor 貼上整份 → Run
 -- ═══════════════════════════════════════════════════════════════════
 
-insert into public.posts
-  (cohort, kind, title, body, important, published, org, author_id, visibility)
-select 10, 'notice', '請登入看板，並花三分鐘填自己的資料',
+with c(b) as (values (
 $body$看板現在只放得出大家的姓名，其餘一律要本人登入、自己決定要開放什麼。
 所以你不登入，別人在名冊上看到的就只有你的名字。
 
@@ -48,21 +48,18 @@ $body$看板現在只放得出大家的姓名，其餘一律要本人登入、�
 
 不想露出的就設「只有自己」，不會有人知道你填了什麼。
 手機、Email、LINE ID 也是一樣，你想給誰看就給誰看。
-
-■ 最想拜託大家填的兩欄
-
-「我可以提供」和「我想找」。
-
-我們這班橫跨開發、營造、建築、估價、地政、公部門、工程顧問、
-室內裝修、資訊、能源 —— 十幾個行業。這是這個班最值錢的地方，
-但如果大家都不寫，誰手上有什麼就永遠只有自己知道。
-
-填完之後到「資源交流」開一則需求試試看。
-放在 LINE 群裡問，訊息很快就被洗掉；放在看板上會留著，
-而且看得到最後是誰接住的。
-
-哪裡怪怪的、想加什麼，直接跟我說。$body$,
-  true, true, '班級', 23, 'public'
-where not exists (
-  select 1 from public.posts where title = '請登入看板，並花三分鐘填自己的資料'
-);
+$body$
+)),
+upd as (
+  update public.posts p
+     set body = c.b, important = true, published = true, visibility = 'public'
+    from c
+   where p.title = '請登入看板，並花三分鐘填自己的資料'
+  returning p.id
+)
+insert into public.posts
+  (cohort, kind, title, body, important, published, org, author_id, visibility)
+select 10, 'notice', '請登入看板，並花三分鐘填自己的資料',
+       c.b, true, true, '班級', 23, 'public'
+  from c
+ where not exists (select 1 from upd);
