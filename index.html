@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-TW" data-cssv="86">
+<html lang="zh-TW" data-cssv="87">
 <head>
 <meta charset="UTF-8">
 <meta name="robots" content="noindex, nofollow">
@@ -313,6 +313,8 @@ img{max-width:100%}
 .alloctable .cr{text-align:center;width:52px;font-variant-numeric:tabular-nums}
 .alloctable td{background:var(--card)}
 @media(max-width:700px){.allocwrap{grid-template-columns:1fr}}
+/* 選課截止那張卡：跟其他 bigcard 同結構，但用警示色，因為逾期要花錢 */
+.bigcard.warnband .band{background:linear-gradient(120deg,#8A5A00,#B8790C)}
 .oncls{display:block;margin-top:3px;font-size:.8rem;color:var(--muted);line-height:1.6}
 .oncls b{color:var(--ink);font-weight:700}
 .pill.role{background:var(--c-orange);color:#fff;border-color:transparent;font-weight:800}
@@ -702,14 +704,14 @@ img{max-width:100%}
 <!-- ⚠️ 每支 js 後面的 ?v= 是快取破解用的。
      GitHub Pages 會讓瀏覽器把 js 快取住，不加這個的話我改了東西，
      同學那邊還是舊版，而且看不出來 —— 每次改版把 v 一起換掉。 -->
-<script src="config.js?v=86"></script>
-<script src="school.js?v=86"></script>
-<script src="faculty.js?v=86"></script>
-<script src="data.js?v=86"></script>
+<script src="config.js?v=87"></script>
+<script src="school.js?v=87"></script>
+<script src="faculty.js?v=87"></script>
+<script src="data.js?v=87"></script>
 <!-- private.js 已於 2026-08-29 刪除：公司職稱改由資料庫按可見範圍吐出。
      ⛔ 不要為了「本機測試方便」把它加回來 —— 那等於再開一個公開的個資副本。 -->
-<script src="backend.js?v=86"></script>
-<script src="app.js?v=86"></script>
-<script src="forms.js?v=86"></script>
+<script src="backend.js?v=87"></script>
+<script src="app.js?v=87"></script>
+<script src="forms.js?v=87"></script>
 </body>
 </html>

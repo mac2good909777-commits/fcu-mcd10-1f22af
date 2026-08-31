@@ -14,7 +14,7 @@
    解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
    換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
    ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
-const CSS_V = "86";
+const CSS_V = "87";
 (function fixStaleCss(){
   if(document.documentElement.dataset.cssv === CSS_V) return;
   // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
@@ -27,7 +27,7 @@ const CSS_V = "86";
   location.replace(location.pathname + "?r=" + CSS_V);
 })();
 
-const VERSION = "v8.6　2026-08-30";
+const VERSION = "v8.7　2026-09-01";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -1389,13 +1389,16 @@ function render_calendar(){
     </article>` : ""}
 
     ${forumNextHTML(today)}
+    ${selectDeadlineHTML(today)}
 
     <div class="tools" style="margin-top:16px"><div class="chips">
       <button class="chip${CAL_TAB==="class"?" on":""}" onclick="CAL_TAB='class';render('calendar')">上課與放假</button>
       <button class="chip${CAL_TAB==="admin"?" on":""}" onclick="CAL_TAB='admin';render('calendar')">行政日程</button>
     </div></div>
 
-    ${CAL_TAB === "class" ? classScheduleHTML(today) : adminCalendarHTML(today, nextAdmin)}
+    ${CAL_TAB === "class"
+      ? classScheduleHTML(today) + selectScheduleHTML(today)
+      : adminCalendarHTML(today, nextAdmin)}
 
     ${forumListHTML(today)}`;
 }
@@ -1435,6 +1438,46 @@ function offItemsHTML(r){
 }
 
 /* 學程公告的休假表：一列一個日期區間，右邊直接標「上課／沒課」 */
+/* 選課時間。⚠️ 這張表跟休假表回答的問題不同 ——
+   休假表是「哪天要來」，這張是「哪天以前要把課選好」，而且逾期要花錢。
+   所以截止日單獨做一張倒數卡放最上面，不要埋在表格裡。 */
+function selectDeadlineHTML(today){
+  const cs = COURSE_SELECT, left = Math.round((new Date(cs.deadline) - new Date(today)) / 86400000);
+  if(left < 0) return "";                       // 過了就不再佔版面
+  return `<article class="card bigcard warnband">
+    <div class="band">
+      <div class="kicker">選課要在這天以前弄好</div>
+      <div class="t">${cs.deadline.slice(5).replace("-", "/")}（${wdOf(cs.deadline)}）
+        確認個人選課資料截止日　學分費核算基準日</div>
+    </div>
+    <div class="body">
+      <div class="bodytext" style="margin-top:0">${esc(cs.deadline_note)}</div>
+      <div class="hint" style="margin-top:8px">怎麼核對：${esc(cs.check_how)}</div>
+      <div class="seatline">${left === 0 ? "<b>就是今天</b>" : `還有 <b>${left}</b> 天`}</div>
+    </div>
+  </article>`;
+}
+function selectScheduleHTML(today){
+  const cs = COURSE_SELECT;
+  return `
+    <div class="sec" style="margin-top:22px"><h2>選課時間</h2>
+      <span class="hint">115-1</span></div>
+    <article class="card">
+      ${cs.rows.map(r => `<div class="calrow${r.dates.includes("8/2") ? " past" : ""}">
+        <div class="caldate wide"><b>${esc(r.dates)}</b><span>${esc(r.time)}</span></div>
+        <div class="calbody">
+          <div class="caltext"><b>${esc(r.what)}</b></div>
+          <div class="hint">對象：${esc(r.who)}　方式：${esc(r.how)}</div>
+          <ul class="offlist">${r.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>
+        </div>
+      </div>`).join("")}
+    </article>
+    <div class="hint" style="margin-top:8px">
+      資料出自${esc(cs.source)}。
+      ⚠️ 9/4 與 9/16–9/17 的現場選課分日間與夜間學制兩個時段，
+      本學程屬哪一個請向學程辦公室確認 —— 這裡照手冊原文列出，沒有替你選。</div>`;
+}
+
 function classScheduleHTML(today){
   const s = CLASS_SCHEDULE;
   return `
