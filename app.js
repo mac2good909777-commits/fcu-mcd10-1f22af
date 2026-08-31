@@ -14,7 +14,7 @@
    解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
    換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
    ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
-const CSS_V = "87";
+const CSS_V = "88";
 (function fixStaleCss(){
   if(document.documentElement.dataset.cssv === CSS_V) return;
   // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
@@ -27,7 +27,7 @@ const CSS_V = "87";
   location.replace(location.pathname + "?r=" + CSS_V);
 })();
 
-const VERSION = "v8.7　2026-09-01";
+const VERSION = "v8.8　2026-09-01";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -372,6 +372,38 @@ const isOfficer  = () => !!(ME && ME.officer);
    ⚠️ 只濾 leave（休學中）。leave_active 是「休學但仍參與」，
       那位還在班上活動，濾掉他才是錯的。 */
 const onLeave = m => m.status === "leave";
+/* 登入與填寫的進度。⚠️ claimed / confirmed 是 v_members 直接吐的，
+   不用登入就讀得到 —— 所以未登入的人也看得到「還有幾個人沒填」，
+   那正是要給他們看的。
+   ⛔ 分母只算在學的同學，不含師長，也不含休學中的 ——
+      分母混進不會來填的人，數字就失去意義。 */
+function fillStats(){
+  const base = rosterOf(MEMBERS).filter(m => (m.kind || "student") === "student");
+  return { total: base.length,
+           claimed: base.filter(m => m.claimed).length,
+           filled:  base.filter(m => m.confirmed).length };
+}
+function progressHTML(){
+  const s = fillStats(); if(!s.total) return "";
+  const pc = n => Math.round(n / s.total * 100);
+  return `<article class="card pad prog">
+    <div class="progrow">
+      <div class="progitem">
+        <div class="pnum"><b>${s.claimed}</b><span>／${s.total}</span></div>
+        <div class="plabel">已登入認領</div>
+        <div class="pbar"><i style="width:${pc(s.claimed)}%"></i></div>
+      </div>
+      <div class="progitem">
+        <div class="pnum"><b>${s.filled}</b><span>／${s.total}</span></div>
+        <div class="plabel">已填好資料</div>
+        <div class="pbar filled"><i style="width:${pc(s.filled)}%"></i></div>
+      </div>
+    </div>
+    <div class="hint" style="margin-top:10px">${
+      s.filled === s.total ? "全班都填完了。"
+      : `還有 <b>${s.total - s.filled}</b> 位同學沒填 —— 沒填的人，別人在名冊上只看得到名字。`}</div>
+  </article>`;
+}
 const rosterOf = arr => arr.filter(m => !onLeave(m));
 
 const activeCount = () =>
@@ -687,6 +719,7 @@ function render_members(){
   el("v-members").innerHTML = `
     <div class="sec"><h2>名冊</h2><span class="hint">${list.length} / ${
       roster.filter(m => (m.kind || "student") === "student").length} 位</span></div>
+    ${progressHTML()}
     ${!ME ? `<div class="notice-lock">
       名冊先開放<b>姓名</b>，方便同學進來對照認領自己。<br>
       公司與職稱<b>已由新生名冊預設帶入</b>，登入後才看得到，之後也可以自己修改。</div>` : ""}
