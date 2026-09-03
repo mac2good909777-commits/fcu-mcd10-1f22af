@@ -7,88 +7,135 @@
 <meta name="robots" content="noindex">
 <!--
   ⚠️ 這是【版面預覽】，不是真的表單，按下去不會送出任何東西。
-     用途：在花時間去 Google 表單裡逐題建立之前，先看過版面、字句與題目順序。
-     真的要收報名，還是要在 Google 表單建一份 —— 檔案上傳題只有它做得到。
+     真的收報名的表單在 Google 表單，見頁尾。
+
+  ⚠️ 單一深色主題是刻意的 —— 這頁是邀請函，跟著海報走，不做淺色版。
+     因此每一個顏色都寫死，不依賴瀏覽器的明暗設定。
 -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700;900&family=Noto+Sans+TC:wght@400;500;700&display=swap">
 <style>
 :root{
-  --navy:#1B2D60; --navy-d:#0F1C42; --gold:#C6A24E;
-  --paper:#F5F1E6; --card:#fff; --ink:#202124; --ink2:#5F6368; --line:#DADCE0;
-  --req:#D93025;
+  --navy-0:#0B1A3E; --navy-1:#132a5c; --navy-2:#1B3168;
+  --card:#F4EEE0; --card-line:#E0D3B4;
+  --ink:#16264D; --ink-2:#4A5A7D;
+  --gold:#C6A24E; --gold-hi:#EBD79B; --gold-deep:#8A6B22;
+  --red:#A02318;
 }
 *{box-sizing:border-box}
+html,body{margin:0}
 body{
-  margin:0; background:var(--paper); color:var(--ink);
-  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",Roboto,system-ui,sans-serif;
-  font-size:15px; line-height:1.7;
+  background:var(--navy-0);
+  color:#EDE7DA;
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  font-size:15px; line-height:1.8;
+  background-image:
+    radial-gradient(1200px 500px at 50% -8%, #1E376F 0%, rgba(30,55,111,0) 70%),
+    radial-gradient(900px 420px at 50% 108%, #4A3A16 0%, rgba(74,58,22,0) 72%),
+    linear-gradient(180deg, var(--navy-0) 0%, var(--navy-1) 45%, var(--navy-2) 100%);
+  background-attachment:fixed;
 }
-.wrap{max-width:770px; margin:0 auto; padding:22px 14px 70px}
+.wrap{max-width:760px; margin:0 auto; padding:20px 15px 72px}
 
-/* 預覽提示條 —— 一定要講清楚這不是真表單 */
+/* 預覽提示 —— 長得像表單卻不能送出，一定要先講 */
 .preview{
-  background:#FFF4D6; border:1px solid #E8CE83; border-radius:8px;
-  padding:12px 15px; margin-bottom:18px; font-size:.86rem; line-height:1.75; color:#6B5312;
+  border:1px solid #7E6524; background:rgba(198,162,78,.12);
+  border-radius:9px; padding:12px 15px; margin-bottom:20px;
+  font-size:.85rem; line-height:1.75; color:#F0DFAF;
 }
-.preview b{color:#4A3800}
+.preview b{color:#FFF0C4}
 
-.card{
-  background:var(--card); border:1px solid var(--line); border-radius:9px;
-  padding:22px 24px; margin-bottom:12px;
+/* 海報 */
+.poster{margin:0 0 22px; text-align:center}
+.poster img{
+  width:100%; max-width:430px; height:auto; display:block; margin:0 auto;
+  border:3px solid var(--gold); border-radius:6px;
+  box-shadow:0 10px 40px rgba(0,0,0,.45);
 }
-.headcard{padding:0; overflow:hidden; border-top:none}
-.headcard img{display:block; width:100%; height:auto}
-.headcard .inner{padding:22px 24px 24px; border-top:10px solid var(--navy)}
-h1{font-size:1.72rem; font-weight:500; line-height:1.35; margin:0 0 14px; color:var(--ink)}
-.desc{color:var(--ink2); font-size:.95rem; white-space:pre-line; margin:0}
-.reqnote{color:var(--req); font-size:.82rem; margin-top:16px}
 
-.q{font-size:1rem; font-weight:500; margin:0 0 3px}
-.q .star{color:var(--req); margin-left:3px}
-.qhint{color:var(--ink2); font-size:.85rem; margin:0 0 14px}
-.short{
-  border:none; border-bottom:1px solid var(--line); padding:7px 2px;
-  width:min(340px,100%); font:inherit; font-size:.94rem; color:var(--ink2);
-  background:transparent;
+/* 金色分隔飾線 */
+.rule{display:flex; align-items:center; gap:12px; margin:26px 0 18px}
+.rule::before,.rule::after{content:""; flex:1; height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.rule span{
+  font-family:"Noto Serif TC",serif; font-weight:700; font-size:.9rem;
+  color:var(--gold-hi); letter-spacing:.22em;
 }
-.opts{display:flex; flex-direction:column; gap:13px; margin-top:14px}
-.opt{display:flex; align-items:center; gap:12px; font-size:.95rem}
-.radio{
-  width:19px; height:19px; border-radius:50%; border:2px solid #5F6368; flex:none;
-}
-.upl{
-  margin-top:14px; border:1px dashed var(--line); border-radius:8px;
-  padding:20px; text-align:center;
-}
-.upbtn{
-  display:inline-flex; align-items:center; gap:8px; border:1px solid var(--navy);
-  color:var(--navy); border-radius:20px; padding:7px 18px; font-size:.9rem; font-weight:500;
-  background:#fff;
-}
-.uplimit{color:var(--ink2); font-size:.8rem; margin-top:11px}
 
-.submitrow{display:flex; align-items:center; gap:18px; margin-top:6px}
-.submit{
-  background:var(--navy); color:#fff; border:none; border-radius:5px;
-  padding:10px 26px; font:inherit; font-size:.95rem; font-weight:500;
+/* 資訊卡：米色底＋雙金邊，照海報 */
+.info{
+  background:var(--card); color:var(--ink);
+  border:2px solid var(--gold); border-radius:16px; padding:6px;
+  box-shadow:0 8px 32px rgba(0,0,0,.35);
 }
-.clear{color:var(--navy); font-size:.9rem}
+.info .in{border:1px solid var(--card-line); border-radius:11px; padding:20px 22px}
+.info h1{
+  font-family:"Noto Serif TC",serif; font-size:1.5rem; font-weight:900;
+  margin:0 0 12px; color:var(--ink); line-height:1.4; text-wrap:balance;
+}
+.info .lede{margin:0; color:var(--ink-2); font-size:.94rem; white-space:pre-line}
 
-.setup{margin-top:34px}
-.setup h2{font-size:1.05rem; margin:0 0 12px; color:var(--navy)}
-.setup .card{padding:18px 20px}
-.kv{display:grid; grid-template-columns:auto 1fr; gap:7px 16px; font-size:.9rem; margin:0}
-.kv dt{color:var(--ink2)}
-.kv dd{margin:0; font-family:ui-monospace,Menlo,monospace}
-.setup ul{margin:12px 0 0; padding-left:1.2em; font-size:.9rem; color:var(--ink2)}
+.rows{list-style:none; margin:18px 0 0; padding:0; display:flex; flex-direction:column; gap:11px}
+.rows li{display:flex; gap:13px; align-items:baseline}
+.rows .k{
+  flex:none; width:52px; font-family:"Noto Serif TC",serif; font-weight:700;
+  color:var(--ink); border-right:2px solid var(--gold); padding-right:11px; text-align:justify;
+}
+.rows .v{font-weight:500}
+.rows .v b{color:var(--red); font-weight:700; font-size:1.06em}
+
+/* 問題卡 */
+.q{
+  background:var(--card); color:var(--ink); border-radius:11px;
+  padding:17px 19px; margin-bottom:11px; border-left:4px solid var(--gold);
+  box-shadow:0 4px 18px rgba(0,0,0,.28);
+}
+.q .t{font-family:"Noto Serif TC",serif; font-weight:700; font-size:1.02rem}
+.q .t .star{color:var(--red); margin-left:4px}
+.q .hint{color:var(--ink-2); font-size:.85rem; margin-top:3px}
+.q .ans{
+  margin-top:13px; border-bottom:1px dashed #BCAF92; color:#8C8067;
+  font-size:.9rem; padding-bottom:5px; max-width:330px;
+}
+.opts{margin-top:13px; display:flex; flex-direction:column; gap:11px}
+.opt{display:flex; align-items:center; gap:11px; font-size:.94rem}
+.dot{width:17px; height:17px; border-radius:50%; border:2px solid #8C8067; flex:none}
+.upl{margin-top:13px; border:1px dashed #BCAF92; border-radius:9px; padding:17px; text-align:center}
+.upl .btn{
+  display:inline-block; border:1px solid var(--gold-deep); color:var(--gold-deep);
+  border-radius:20px; padding:6px 17px; font-size:.88rem; font-weight:700;
+}
+.upl .lim{color:#8C8067; font-size:.79rem; margin-top:9px}
+
+.send{
+  margin-top:20px; text-align:center;
+}
+.send .btn{
+  display:inline-block; background:linear-gradient(180deg,var(--gold-hi),var(--gold));
+  color:#3B2C08; font-weight:700; border-radius:24px; padding:11px 40px;
+  font-size:.98rem; box-shadow:0 6px 20px rgba(198,162,78,.28);
+}
+.send .note{color:#B9C6E2; font-size:.8rem; margin-top:9px}
+
+/* 建置備忘 */
+.setup{
+  margin-top:30px; border:1px solid #35508C; border-radius:11px;
+  padding:17px 19px; background:rgba(11,26,62,.55);
+}
+.setup h2{font-family:"Noto Serif TC",serif; font-size:1rem; margin:0 0 11px; color:var(--gold-hi)}
+.setup dl{display:grid; grid-template-columns:auto 1fr; gap:6px 15px; margin:0 0 12px; font-size:.87rem}
+.setup dt{color:#A9BADD}
+.setup dd{margin:0; font-family:ui-monospace,Menlo,monospace; color:#F0E6CE}
+.setup ul{margin:0; padding-left:1.15em; font-size:.87rem; color:#C6D2EA}
 .setup li{margin-bottom:7px}
-.setup b{color:var(--ink)}
-.foot{text-align:center; color:var(--ink2); font-size:.78rem; margin-top:26px}
+.setup b{color:#FFF0C4}
+.setup a{color:var(--gold-hi)}
+.foot{text-align:center; color:#8496BC; font-size:.77rem; margin-top:24px}
 
 @media(max-width:520px){
-  .card{padding:18px 16px}
-  .headcard .inner{padding:18px 16px 20px}
-  h1{font-size:1.42rem}
+  .info .in{padding:16px 15px}
+  .info h1{font-size:1.28rem}
+  .rows .k{width:46px}
+  .q{padding:15px 15px}
 }
 </style>
 </head>
@@ -97,94 +144,86 @@ h1{font-size:1.72rem; font-weight:500; line-height:1.35; margin:0 0 14px; color:
 
   <div class="preview">
     <b>這是版面預覽，不是真的表單。</b>按送出不會有任何事發生，也不會收到任何資料。<br>
-    用途是讓你先看過版面、字句與題目順序，確認沒問題再去 Google 表單建一份。
-    最下面有建置時要填的設定值。
+    真正收報名的 Google 表單連結在頁尾。
   </div>
 
-  <div class="card headcard">
-    <img src="header.png" alt="迎新晚會　2026/10/03（六）18:30　星享道酒店 9 樓・久享廳">
-    <div class="inner">
-      <h1>第十屆迎新晚會 報名</h1>
-      <p class="desc">第九屆碩二同學敬邀師長暨第十屆新生同學參加迎新晚會。
+  <div class="poster">
+    <img src="poster.jpg" alt="迎新晚會邀請卡：2026 年 10 月 3 日（星期六）18:30，星享道酒店 9 樓久享廳">
+  </div>
 
-日期｜2026 年 10 月 3 日（星期六）18:30
-地點｜星享道酒店 9 樓・久享廳
-地址｜台中市西屯區福星北路 18 號
-
-報名截止 9/30。請碩一同學上傳一張個人生活照，晚會當天會用到。</p>
-      <div class="reqnote">* 表示必填問題</div>
+  <div class="info">
+    <div class="in">
+      <h1>第十屆迎新晚會　報名</h1>
+      <p class="lede">第九屆碩二同學敬邀師長暨第十屆新生同學參加迎新晚會。</p>
+      <ul class="rows">
+        <li><span class="k">日期</span><span class="v"><b>2026 / 10 / 03</b>（星期六）</span></li>
+        <li><span class="k">時間</span><span class="v"><b>18:30</b></span></li>
+        <li><span class="k">地點</span><span class="v">星享道酒店 9 樓・久享廳</span></li>
+        <li><span class="k">地址</span><span class="v">台中市西屯區福星北路 18 號</span></li>
+        <li><span class="k">截止</span><span class="v"><b>9 / 30</b>　請碩一同學上傳一張個人生活照，晚會當天會用到</span></li>
+      </ul>
     </div>
   </div>
 
-  <div class="card">
-    <p class="q">姓名<span class="star">*</span></p>
-    <input class="short" placeholder="您的回答" disabled>
+  <div class="rule"><span>報名資料</span></div>
+
+  <div class="q">
+    <div class="t">姓名<span class="star">*</span></div>
+    <div class="ans">您的回答</div>
   </div>
 
-  <div class="card">
-    <p class="q">你的身分<span class="star">*</span></p>
+  <div class="q">
+    <div class="t">是否出席<span class="star">*</span></div>
+    <div class="hint">無法出席也請按一下，這樣才知道還要不要追。</div>
     <div class="opts">
-      <div class="opt"><span class="radio"></span>第十屆碩一新生</div>
-      <div class="opt"><span class="radio"></span>第九屆碩二</div>
-      <div class="opt"><span class="radio"></span>師長</div>
+      <div class="opt"><span class="dot"></span>會出席</div>
+      <div class="opt"><span class="dot"></span>無法出席</div>
     </div>
   </div>
 
-  <div class="card">
-    <p class="q">是否出席<span class="star">*</span></p>
-    <p class="qhint">無法出席也請按一下，這樣才知道還要不要追。</p>
+  <div class="q">
+    <div class="t">餐點<span class="star">*</span></div>
     <div class="opts">
-      <div class="opt"><span class="radio"></span>會出席</div>
-      <div class="opt"><span class="radio"></span>無法出席</div>
+      <div class="opt"><span class="dot"></span>葷食</div>
+      <div class="opt"><span class="dot"></span>素食</div>
     </div>
   </div>
 
-  <div class="card">
-    <p class="q">餐點<span class="star">*</span></p>
-    <div class="opts">
-      <div class="opt"><span class="radio"></span>葷食</div>
-      <div class="opt"><span class="radio"></span>素食</div>
-    </div>
-  </div>
-
-  <div class="card">
-    <p class="q">個人生活照（碩一同學請上傳一張）</p>
-    <p class="qhint">晚會當天會用到。上傳需要登入 Google 帳號 ——
-      沒有帳號或不方便登入的同學，照片直接傳 LINE 給班代就好。</p>
+  <div class="q">
+    <div class="t">個人生活照（碩一同學請上傳一張）</div>
+    <div class="hint">晚會當天會用到。上傳需要登入 Google 帳號 ——
+      沒有帳號或不方便登入的同學，照片直接傳 LINE 給班代就好。</div>
     <div class="upl">
-      <span class="upbtn">⬆　新增檔案</span>
-      <div class="uplimit">僅限圖片・1 個檔案・每個檔案上限 10 MB</div>
+      <span class="btn">⬆　新增檔案</span>
+      <div class="lim">僅限圖片・1 個檔案・每個檔案上限 10 MB</div>
     </div>
   </div>
 
-  <div class="card">
-    <p class="q">其他需求或想說的話</p>
-    <p class="qhint">食物過敏、行動需求、想跟大家說的話都可以寫。</p>
-    <input class="short" placeholder="您的回答" disabled>
+  <div class="q">
+    <div class="t">其他需求或想說的話</div>
+    <div class="hint">食物過敏、行動需求、想跟大家說的話都可以寫。</div>
+    <div class="ans">您的回答</div>
   </div>
 
-  <div class="submitrow">
-    <span class="submit">提交</span>
-    <span class="clear">清除表單</span>
+  <div class="send">
+    <span class="btn">提交</span>
+    <div class="note">預覽頁的按鈕沒有作用</div>
   </div>
 
   <div class="setup">
-    <h2>到 Google 表單建立時，照這些設定</h2>
-
-    <div class="card">
-      <dl class="kv">
-        <dt>標題圖片</dt><dd><a href="header.png" download>header.png</a>（1600×400）</dd>
-        <dt>主題顏色</dt><dd>#1B2D60</dd>
-        <dt>背景顏色</dt><dd>#F5F1E6</dd>
-        <dt>字體樣式</dt><dd>典雅</dd>
-      </dl>
-      <ul>
-        <li><b>素食做成選擇題，不要用「王大明(素)」的寫法。</b>回覆摘要會直接給你葷素各幾人；用括號註記的話訂餐時還要一列一列數，而且一定有人漏寫。</li>
-        <li><b>照片題的題目名稱要想清楚。</b>檔案會存進你雲端硬碟的「表單名稱 (File responses)」資料夾，檔名格式是「題目名稱 - 填答者姓名」。題目寫「個人生活照」，檔案就是「個人生活照 - 張現傑.jpg」，整批丟進 Google 相簿時名字直接對得上人。</li>
-        <li><b>表單沒有到期自動關閉。</b>9/30 要自己去「回覆」分頁把「接受回覆」關掉，不然 10/1 還會有人報名。現在就在手機設一個提醒。</li>
-        <li><b>檔案上傳佔用的是你的雲端硬碟空間</b>，不是填答者的。46 人各一張手機照約 200–400 MB。</li>
-      </ul>
-    </div>
+    <h2>Google 表單的設定值</h2>
+    <dl>
+      <dt>標題圖片</dt><dd><a href="header.png" download>header.png</a>（1600×400）</dd>
+      <dt>主題顏色</dt><dd>#1B2D60</dd>
+      <dt>背景顏色</dt><dd>#F5F1E6</dd>
+      <dt>字體樣式</dt><dd>典雅</dd>
+    </dl>
+    <ul>
+      <li><b>素食做成選擇題，不要用「王大明(素)」的寫法。</b>回覆摘要會直接給你葷素各幾人；用括號註記的話訂餐時還要一列一列數，而且一定有人漏寫。</li>
+      <li><b>照片題的題目名稱要想清楚。</b>檔案會存進雲端硬碟的「表單名稱 (File responses)」資料夾，檔名格式是「題目名稱 - 填答者姓名」。題目寫「個人生活照」，檔案就是「個人生活照 - 張現傑.jpg」，整批丟進 Google 相簿時名字直接對得上人。</li>
+      <li><b>表單沒有到期自動關閉。</b>9/30 要自己去「回覆」分頁把「接受回覆」關掉，不然 10/1 還會有人報名。</li>
+      <li><b>檔案上傳佔用的是表單擁有者的雲端硬碟空間</b>，不是填答者的。46 人各一張手機照約 200–400 MB。</li>
+    </ul>
   </div>
 
   <div class="foot">版面預覽　·　逢甲大學建設碩士在職學位學程 第十屆同學看板</div>
