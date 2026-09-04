@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════
--- 公告：「9/5 開始加退選；9/8 開學，星期一沒有課」
+-- 公告：「9/5 開始加退選；9/8 開學」
 --
 -- 發布人＝張現傑（member id 23，班代）。
 --
@@ -12,6 +12,10 @@
 --    9/17 加退選結束後可以改成 false（登入後按「編輯這則」就能改）。
 --
 -- ⚠️ 可重複執行：有就更新、沒有才新增。
+--
+-- ⛔ 這支靠【標題比對】決定更新還是新增。
+--    在看板上把標題改掉之後，這裡的標題也要跟著改，
+--    否則重跑會多出一則重複公告。（2026-09-04 標題被改過一次。）
 --
 -- 在 Supabase → SQL Editor 貼上整份 → Run
 -- ═══════════════════════════════════════════════════════════════════
@@ -54,12 +58,12 @@ upd as (
   update public.posts p
      set body = c.b, important = true, published = true, visibility = 'public'
     from c
-   where p.title = '9/5 開始加退選；9/8 開學，星期一沒有課'
+   where p.title = '9/5 開始加退選；9/8 開學'
   returning p.id
 )
 insert into public.posts
   (cohort, kind, title, body, important, published, org, author_id, visibility)
-select 10, 'notice', '9/5 開始加退選；9/8 開學，星期一沒有課',
+select 10, 'notice', '9/5 開始加退選；9/8 開學',
        c.b, true, true, '班級', 23, 'public'
   from c
  where not exists (select 1 from upd);
