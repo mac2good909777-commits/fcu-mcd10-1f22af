@@ -14,7 +14,7 @@
    解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
    換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
    ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
-const CSS_V = "88";
+const CSS_V = "89";
 (function fixStaleCss(){
   if(document.documentElement.dataset.cssv === CSS_V) return;
   // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
@@ -27,7 +27,7 @@ const CSS_V = "88";
   location.replace(location.pathname + "?r=" + CSS_V);
 })();
 
-const VERSION = "v8.8　2026-09-01";
+const VERSION = "v8.9　2026-09-04";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -1429,8 +1429,12 @@ function render_calendar(){
       <button class="chip${CAL_TAB==="admin"?" on":""}" onclick="CAL_TAB='admin';render('calendar')">行政日程</button>
     </div></div>
 
-    ${CAL_TAB === "class"
-      ? classScheduleHTML(today) + selectScheduleHTML(today)
+    ${/* ⛔ 選課時間要排在休假表【前面】 ——
+          休假表從 9/8 排到隔年 1/5，選課時間是 8/26–9/17；
+          放後面會讓整頁的時間軸倒著跑，而且開學這兩週最該看的
+          就是加退選，埋在下面等於沒放。 */
+      CAL_TAB === "class"
+      ? selectScheduleHTML(today) + classScheduleHTML(today)
       : adminCalendarHTML(today, nextAdmin)}
 
     ${forumListHTML(today)}`;
@@ -1492,18 +1496,28 @@ function selectDeadlineHTML(today){
 }
 function selectScheduleHTML(today){
   const cs = COURSE_SELECT;
+  /* 每一列標出現在走到哪 —— 這張表橫跨三週，
+     不標的話同學要自己拿今天的日期一列一列比對。 */
+  const stateOf = r => today < r.from ? ["soon", "即將開始"]
+                     : today > r.to   ? ["past", "已結束"]
+                                      : ["now",  "進行中"];
   return `
-    <div class="sec" style="margin-top:22px"><h2>選課時間</h2>
-      <span class="hint">115-1</span></div>
+    <div class="sec"><h2>選課時間</h2>
+      <span class="hint">115-1　加退選到 9/17 為止</span></div>
     <article class="card">
-      ${cs.rows.map(r => `<div class="calrow${r.dates.includes("8/2") ? " past" : ""}">
-        <div class="caldate wide"><b>${esc(r.dates)}</b><span>${esc(r.time)}</span></div>
-        <div class="calbody">
-          <div class="caltext"><b>${esc(r.what)}</b></div>
-          <div class="hint">對象：${esc(r.who)}　方式：${esc(r.how)}</div>
-          <ul class="offlist">${r.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>
-        </div>
-      </div>`).join("")}
+      ${cs.rows.map(r => {
+        const st = stateOf(r);
+        return `<div class="calrow${st[0] === "past" ? " past" : ""}${st[0] === "now" ? " next" : ""}">
+          <div class="caldate wide"><b>${esc(r.dates)}</b><span>${esc(r.time)}</span></div>
+          <div class="calbody">
+            <div class="caltext"><b>${esc(r.what)}</b>
+              <span class="pill${st[0] === "now" ? " ok" : ""}"
+                style="${st[0] === "now" ? "" : "opacity:.65"}">${st[1]}</span></div>
+            <div class="hint">對象：${esc(r.who)}　方式：${esc(r.how)}</div>
+            <ul class="offlist">${r.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>
+          </div>
+        </div>`;
+      }).join("")}
     </article>
     <div class="hint" style="margin-top:8px">
       資料出自${esc(cs.source)}。
