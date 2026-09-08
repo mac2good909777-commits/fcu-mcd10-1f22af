@@ -14,7 +14,7 @@
    解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
    換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
    ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
-const CSS_V = "89";
+const CSS_V = "90";
 (function fixStaleCss(){
   if(document.documentElement.dataset.cssv === CSS_V) return;
   // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
@@ -27,7 +27,7 @@ const CSS_V = "89";
   location.replace(location.pathname + "?r=" + CSS_V);
 })();
 
-const VERSION = "v8.9　2026-09-04";
+const VERSION = "v9.0　2026-09-04";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -1616,7 +1616,7 @@ function render_courses(){
     <div class="sec"><h2>本學期週曆</h2><span class="hint">碩一上</span></div>
     ${weekGrid(t.rows)}
     <div class="hint" style="margin-top:8px">
-      平日晚間都是 18:10–21:00，週六早上 09:10–11:00、下午 13:10–16:00。
+      平日晚間都是 18:30–21:15，週六早上 09:10–11:00、下午 13:10–16:00。
       <b>星期四沒有課</b>；<b>週一晚上兩門課同時開</b>，國土計畫專論與結構物安全鑑定實務只能二擇一。
       資料出自${esc(t.source)}，實際時間與教室仍以學校課表與授課老師公告為準。</div>
 
