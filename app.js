@@ -14,7 +14,7 @@
    解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
    換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
    ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
-const CSS_V = "90";
+const CSS_V = "91";
 (function fixStaleCss(){
   if(document.documentElement.dataset.cssv === CSS_V) return;
   // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
@@ -27,7 +27,7 @@ const CSS_V = "90";
   location.replace(location.pathname + "?r=" + CSS_V);
 })();
 
-const VERSION = "v9.0　2026-09-04";
+const VERSION = "v9.1　2026-09-04";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -328,6 +328,24 @@ const emptyBox = (title, desc) =>
 /* ⛔ 使用者填的網址不能直接塞進 href。
    填 javascript:alert(1) 就會變成可以點的程式碼 —— 只放行 http/https。
    ⚠️ 這裡回傳 null 代表「有填但不安全」，畫面要當作沒填，不要照原樣印出來。 */
+/* 公告內文裡的網址自動變成可點的連結。
+   ⚠️ 一定要【先切段再逐段 esc】—— 不能先 esc 整段再找網址，
+      那樣網址裡的 & 已經變成 &amp;，接回 href 就是壞的連結。
+   ⛔ 只認 http/https。使用者貼進來的東西不能直接進 href。 */
+function linkify(text){
+  const src = (text || "").toString();
+  const re = /https?:\/\/[^\s<>"'）)】」，,。]+/g;
+  let out = "", last = 0, m;
+  while((m = re.exec(src)) !== null){
+    out += esc(src.slice(last, m.index));
+    const u = m[0];
+    out += `<a href="${escAttr(u)}" target="_blank" rel="noopener"
+      style="color:var(--p-500);font-weight:700;word-break:break-all">${esc(u)}</a>`;
+    last = m.index + u.length;
+  }
+  return out + esc(src.slice(last));
+}
+
 function safeUrl(u){
   const t = (u || "").trim();
   return /^https?:\/\//i.test(t) ? t : null;
@@ -667,9 +685,10 @@ function render_pdetail(){
         ${p.deadline ? `<dt>截止</dt><dd>${esc(p.deadline)}</dd>` : ""}
         <dt>發布</dt><dd>${byline(p)}</dd>
       </dl>
-      <div class="bodytext">${esc(p.body || "")}</div>
+      <div class="bodytext">${linkify(p.body || "")}</div>
       ${p.link ? `<div class="actions" style="margin-top:14px">
-        <a class="btn btn-primary" href="${esc(p.link)}" target="_blank" rel="noopener">前往填寫 ↗</a></div>` : ""}
+        <a class="btn btn-primary" href="${escAttr(safeUrl(p.link) || "#")}" target="_blank" rel="noopener">${
+          p.kind === "event" ? "前往報名" : "前往填寫"} ↗</a></div>` : ""}
       ${p.kind === "event" ? `
         ${signupBlock(p)}
         <div class="actions">${signupButton(p)}</div>
