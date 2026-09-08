@@ -14,7 +14,7 @@
    解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
    換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
    ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
-const CSS_V = "92";
+const CSS_V = "93";
 (function fixStaleCss(){
   if(document.documentElement.dataset.cssv === CSS_V) return;
   // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
@@ -27,7 +27,7 @@ const CSS_V = "92";
   location.replace(location.pathname + "?r=" + CSS_V);
 })();
 
-const VERSION = "v9.2　2026-09-04";
+const VERSION = "v9.3　2026-09-04";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -482,15 +482,12 @@ function signupButton(p){
   if(left === 0 && !p.waitlist_open) return `<button class="btn btn-done" disabled>名額已滿</button>`;
   return `<button class="btn btn-primary" onclick="doSignup(${p.id}, true)">${left === 0 ? "登記候補" : "我要報名"}</button>`;
 }
-// 報到：只在活動當天可按。平常留著但變灰 —— 按鈕消失比按鈕變灰更難懂。
-function checkinButton(p){
-  if(!p.event_at) return "";
-  // ⛔ 報名走外部表單的活動，看板沒有名單，報到台按了也沒意義
-  if(!p.signup_open && safeUrl(p.link)) return "";
-  if(!isToday(p.event_at)) return `<button class="btn btn-done" disabled>📍 報到（當天開放）</button>`;
-  if(!ME) return `<button class="btn btn-checkin" onclick="onMe()">登入後報到</button>`;
-  return `<button class="btn btn-checkin" onclick="alert('版型階段：正式版會跳出報到碼輸入框')">📍 報到</button>`;
-}
+/* ⛔ 【不要】把「報到」按鈕加回來。
+   2026-09 曾經有一顆，但報到功能從來沒做完 —— 按下去只跳一個
+   「版型階段」的提示。做不到的功能長成按鈕擺在畫面上，
+   同學會以為當天要用它報到，然後現場找不到人核對。
+   真的要做，先有報到碼與名單，再放按鈕。 */
+
 async function doSignup(postId, on){
   await db.signup(postId, on);
   await reload();
@@ -529,7 +526,6 @@ function render_home(){
           ${signupButton(next)}
           <button class="btn btn-ghost" onclick="openPost(${next.id})">看詳情</button>
         </div>
-        <div class="actions" style="margin-top:8px">${checkinButton(next)}</div>
       </div>
     </article>` : ""}
 
@@ -646,7 +642,7 @@ function render_acts(){
       <div class="sec"><h2 style="font-size:.88rem;color:var(--muted)">${m}</h2></div>
       ${ps.map(eventCard).join("")}`).join("")
       : emptyBox("還沒有活動",
-          "聚餐、參訪、專題演講都放這裡，會照月份分組。活動可以開放報名、設名額與候補，當天才會出現報到按鈕。")}`;
+          "聚餐、參訪、專題演講都放這裡，會照月份分組。活動可以開放報名、設名額與候補；報名走外部表單的活動，會直接給你表單連結。")}`;
 }
 function eventCard(p){
   const left = seatsLeft(p.id);
@@ -703,7 +699,6 @@ function render_pdetail(){
       ${p.kind === "event" ? `
         ${signupBlock(p)}
         <div class="actions">${signupButton(p)}</div>
-        <div class="actions" style="margin-top:8px">${checkinButton(p)}</div>
         ${MY_SIGNUPS.has(p.id) ? `<div class="myorder">你已報名這場活動。有事無法出席請記得<b>提前取消</b>，
           位子可以讓給候補的同學。</div>` : ""}` : ""}
       ${isOfficer() ? `<div class="block"><h4>幹部工具</h4>
@@ -1355,8 +1350,7 @@ function render_admin(){
     ${[
       ["👥 同學管理", "審核新申請、解除綁定、標記退出。刪除只給重複的空帳號用。"],
       ["📋 報名名單", "每場活動的報名者、餐點統計、飲食禁忌，可匯出 CSV。"],
-      ["📍 現場報到台", "產生報到碼、即時看誰到了、補登、記錄未到原因。"],
-      ["💰 班費與收款", "收款登記只有財務長勾得動；流水帳只增不改，對帳吵起來看這裡。"],
+            ["💰 班費與收款", "收款登記只有財務長勾得動；流水帳只增不改，對帳吵起來看這裡。"],
       ["📢 發布內容", "公告、問卷、活動。可先存成草稿只給幹部看，定案再公開。"]
     ].map(([t, d]) => `<article class="card pad" onclick="alert('版型階段：這是正式版的功能位置')" style="cursor:pointer">
         <b>${t}</b><div class="hint">${d}</div></article>`).join("")}`}`;
@@ -1855,18 +1849,17 @@ function render_help(){
         <tr><th>不用登入</th><th>要登入</th></tr>
         <tr>
           <td>同學名冊、公告、活動、相簿的<b>內容</b>；已報名<b>人數</b></td>
-          <td>報名活動、現場報到、看聯絡方式、提資源需求</td>
+          <td>報名活動、看聯絡方式、提資源需求</td>
         </tr>
       </table>
-      <p style="font-size:.9rem;margin-top:8px">⛔ 不外流：電話、Email、LINE 帳號 ID、報到定位。</p>
+      <p style="font-size:.9rem;margin-top:8px">⛔ 不外流：電話、Email、LINE 帳號 ID。</p>
 
       <h3>3　活動報名</h3>
       <ul>
         <li>首頁會固定顯示<b>下一場</b>，直接在那裡報名</li>
         <li>額滿可以登記候補；有人取消會自動遞補</li>
         <li><b>不能去一定要提前取消</b> —— 位子讓給候補的同學，聚餐的桌數也要算</li>
-        <li>報到按鈕平常是灰的，<b>活動當天</b>才會亮</li>
-      </ul>
+              </ul>
 
       <h3>4　資源交流怎麼用</h3>
       <p style="font-size:.93rem">這一班橫跨開發、營造、建築、公部門、金融、法務、資訊。
