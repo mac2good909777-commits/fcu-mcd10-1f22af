@@ -14,7 +14,7 @@
    解法：兩邊各記一個版本號，對不上就換一個網址重載 ——
    換網址才會真的重抓 html，直接 reload() 只會再吃到同一份快取。
    ⛔ 改 index.html 的 ?v= 時，這個數字要一起改，不然就白做了。 */
-const CSS_V = "91";
+const CSS_V = "92";
 (function fixStaleCss(){
   if(document.documentElement.dataset.cssv === CSS_V) return;
   // ⛔ LINE 登入導回時網址帶著 code / state，換網址會把它們丟掉，登入就永遠不會成功
@@ -27,7 +27,7 @@ const CSS_V = "91";
   location.replace(location.pathname + "?r=" + CSS_V);
 })();
 
-const VERSION = "v9.1　2026-09-04";
+const VERSION = "v9.2　2026-09-04";
 
 /* 模式由 config.js 決定，不是寫死的：
      三個連線值填齊 → "supabase"（正式，資料進資料庫）
@@ -457,7 +457,16 @@ function seatsLeft(postId){
   return Math.max(0, s.capacity - (s.reserved_seats || 0) - (s.taken || 0));
 }
 function signupBlock(p){
-  if(!p.signup_open) return `<div class="seatline">尚未開放報名</div>`;
+  /* ⚠️ signup_open=false 有兩種完全不同的狀況，不能都說「尚未開放報名」：
+       有 link  → 報名在外面（Google 表單），現在就要去報，說「尚未開放」會害人錯過截止日
+       沒有 link → 才是真的還沒開放
+     2026-09-04 迎新晚會就踩到：報名已經開跑，看板卻寫「尚未開放報名」。 */
+  if(!p.signup_open){
+    if(safeUrl(p.link)) return `<div class="seatline">報名在${
+      p.deadline ? `<b>${esc(p.deadline)}</b>截止，` : ""}下面的表單${
+      p.deadline ? "" : "，請直接前往填寫"}</div>`;
+    return `<div class="seatline">尚未開放報名</div>`;
+  }
   const left = seatsLeft(p.id), st = SEATS[p.id] || {};
   const wait = st.waiting ? `　候補 <b>${st.waiting}</b> 位` : "";
   if(left === null) return `<div class="seatline">開放報名中${wait}</div>`;
@@ -476,6 +485,8 @@ function signupButton(p){
 // 報到：只在活動當天可按。平常留著但變灰 —— 按鈕消失比按鈕變灰更難懂。
 function checkinButton(p){
   if(!p.event_at) return "";
+  // ⛔ 報名走外部表單的活動，看板沒有名單，報到台按了也沒意義
+  if(!p.signup_open && safeUrl(p.link)) return "";
   if(!isToday(p.event_at)) return `<button class="btn btn-done" disabled>📍 報到（當天開放）</button>`;
   if(!ME) return `<button class="btn btn-checkin" onclick="onMe()">登入後報到</button>`;
   return `<button class="btn btn-checkin" onclick="alert('版型階段：正式版會跳出報到碼輸入框')">📍 報到</button>`;
