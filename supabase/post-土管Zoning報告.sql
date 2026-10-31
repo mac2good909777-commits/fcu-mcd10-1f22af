@@ -9,6 +9,10 @@
 --    ⛔ 各組名單【不寫進內文】—— 放在試算表裡由各組自己維護，
 --       這裡寫死的話分組一改就跟試算表對不上。
 --
+-- ⚠️ important = true：公告頁是「置頂優先、再按新舊」，舊的三則都還置頂，
+--    不置頂這則會被壓在下面。班代要新的放上面（2026-10-31）。
+--    12/4 報告結束後可以改成 false，⛔ 不要刪。
+--
 -- ⚠️ link 放分組試算表，畫面上會出現「前往 ↗」按鈕。
 --    試算表的分享權限要在 Google Drive 那邊開，這裡改不到。
 --
@@ -40,7 +44,7 @@ https://docs.google.com/spreadsheets/d/1X0oXvUjvN02s23u8JBkRMSMfPQpB70GbCxzfqa39
 )),
 upd as (
   update public.posts p
-     set body = c.b, kind = 'notice', important = false, published = true,
+     set body = c.b, kind = 'notice', important = true, published = true,
          visibility = 'public',
          link = 'https://docs.google.com/spreadsheets/d/1X0oXvUjvN02s23u8JBkRMSMfPQpB70GbCxzfqa39xG4/edit'
     from c
@@ -50,7 +54,7 @@ upd as (
 insert into public.posts
   (cohort, kind, title, body, important, published, org, author_id, visibility, link)
 select 10, 'notice', '土地使用計畫與管制：美國 Zoning 案例研討報告排程',
-       c.b, false, true, '學程', 23, 'public',
+       c.b, true, true, '學程', 23, 'public',
        'https://docs.google.com/spreadsheets/d/1X0oXvUjvN02s23u8JBkRMSMfPQpB70GbCxzfqa39xG4/edit'
   from c
  where not exists (select 1 from upd);

@@ -496,7 +496,11 @@ async function doSignup(postId, on){
 
 /* ── 首頁 ──────────────────────────────────────────────────────── */
 function render_home(){
-  const events   = POSTS.filter(p => p.kind === "event" && p.event_at)
+  /* ⛔ 只看還沒到的活動 —— 不濾掉的話，最早那一場（早就辦完的）
+        會永遠卡在首頁「下一場」。當天的活動整天都還算下一場。 */
+  const today0   = new Date(twDate(new Date()) + "T00:00:00+08:00");
+  const events   = POSTS.filter(p => p.kind === "event" && p.event_at
+                                  && new Date(p.event_at) >= today0)
                         .sort((a,b) => new Date(a.event_at) - new Date(b.event_at));
   const next     = events[0];
   const notices  = POSTS.filter(p => p.kind === "notice").slice(0, 3);
@@ -621,8 +625,14 @@ function surveyCard(p){
 
 /* ── 活動 ──────────────────────────────────────────────────────── */
 function render_acts(){
+  /* 新的放上面：還沒到的照日期由近到遠排在前，辦完的接在後面、最近辦的在前。
+     ⛔ 辦完的不要藏起來 —— 留著當紀錄，學弟妹看得到我們辦過什麼。 */
+  const today0 = new Date(twDate(new Date()) + "T00:00:00+08:00");
+  const isPast = p => new Date(p.event_at) < today0;
   const all = POSTS.filter(p => p.kind === "event")
-                   .sort((a,b) => new Date(a.event_at) - new Date(b.event_at));
+                   .sort((a,b) => isPast(a) - isPast(b)
+                               || (isPast(a) ? new Date(b.event_at) - new Date(a.event_at)
+                                             : new Date(a.event_at) - new Date(b.event_at)));
   const list = ACT_TAB === "all" ? all : all.filter(p => (p.org || "班級") === ACT_TAB);
   // 照月份分組：在職專班一個月大概就一兩場，平鋪會看不出節奏
   const months = {};
