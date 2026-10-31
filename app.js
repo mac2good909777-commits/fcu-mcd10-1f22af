@@ -548,19 +548,7 @@ function render_home(){
     <div class="sec"><h2>最新公告</h2><button class="more" onclick="go('notices')">更多 ›</button></div>
     ${notices.length ? notices.map(noticeCard).join("") : emptyBox("還沒有公告", "幹部發布的班務公告會出現在這裡。標記「重要」的會置頂並顯示紅字。")}
 
-    <div class="sec"><h2>幹部職務</h2></div>
-    <div class="hint" style="margin-bottom:10px">先看事情該找哪個職務，再去找人。</div>
-    <div class="joinnote">在職專班來的不只是學位，還有人脈 ——
-      <b>做幹部是最快把全班認識一輪的方式</b>，也最容易跟師長與其他屆搭上線。
-      下一任改選時，歡迎接手其中一個位子。</div>
-    <div class="dutygrid">
-      ${OFFICER_ORDER.filter(o => OFFICER_DESC[o]).map(o => `<div class="duty">
-        <div class="offbadge">${esc(o)}</div>
-        <div class="hint">${esc(OFFICER_DESC[o])}</div>
-      </div>`).join("")}
-    </div>
-
-    <div class="sec" style="margin-top:20px"><h2>班級幹部</h2><span class="hint">碩一上</span>
+    <div class="sec"><h2>班級幹部</h2><span class="hint">碩一上</span>
       <button class="more" onclick="go('members')">全班名冊 ›</button></div>
     <div class="offgrid">
       ${officers.map(m => `<div class="offcard" onclick="openMember(${m.id})">
@@ -569,6 +557,18 @@ function render_home(){
           <div class="offname">${esc(m.name)}</div>
           <div class="offrole">${esc(m.officer)}</div>
         </div>
+      </div>`).join("")}
+    </div>
+
+    <div class="sec" style="margin-top:20px"><h2>幹部職務</h2></div>
+    <div class="hint" style="margin-bottom:10px">每個職務負責什麼；有事不知道找誰，照這裡對應上面的人。</div>
+    <div class="joinnote">在職專班來的不只是學位，還有人脈 ——
+      <b>做幹部是最快把全班認識一輪的方式</b>，也最容易跟師長與其他屆搭上線。
+      下一任改選時，歡迎接手其中一個位子。</div>
+    <div class="dutygrid">
+      ${OFFICER_ORDER.filter(o => OFFICER_DESC[o]).map(o => `<div class="duty">
+        <div class="offbadge">${esc(o)}</div>
+        <div class="hint">${esc(OFFICER_DESC[o])}</div>
       </div>`).join("")}
     </div>
 
