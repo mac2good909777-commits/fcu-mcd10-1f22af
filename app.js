@@ -1553,7 +1553,7 @@ function classScheduleHTML(today){
   const s = CLASS_SCHEDULE;
   return `
     <div class="hint" style="margin-bottom:10px">
-      學程公告　115 學年度第 1 學期休假及重要活動日期</div>
+      學程公告　115 學年度第 1 學期休假及重要活動日期，另加授課老師公告的報告日與補課</div>
     <article class="card">
       ${s.rows.map(r => {
         const past = r.dates[r.dates.length - 1] < today;
